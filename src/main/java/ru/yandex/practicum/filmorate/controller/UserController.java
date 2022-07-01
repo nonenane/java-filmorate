@@ -15,6 +15,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
+@RequestMapping("/users")
 public class UserController extends AbstractController<Long, User> {
 
     private EmailValidator emailValidator = new EmailValidator();
@@ -24,61 +25,63 @@ public class UserController extends AbstractController<Long, User> {
         super(new HashMap<>());
     }
 
-    @GetMapping("/users")
+    @GetMapping()
     public List<User> findAll() {
         return new ArrayList<>(resourceStorage.values());
     }
 
-    @PostMapping("/users")
+    @PostMapping()
     public User create(@Valid @RequestBody User user) {
         if (!validate(user)) {
-            throw new ValidationException("Error Validate");
+            throw new ValidationException("Ошибка проверки");
         }
 
-        if (user.getId() == null) {
-            user = setNameIfNameIsBlank(setId(user));
-        } else {
-            user = setNameIfNameIsBlank(user);
+        if (user.getId() != null) {
+            log.info("Запись уже присутствует.");
+            throw new ValidationException("Не пустой id");
         }
+
+        user = setNameIfNameIsBlank(new User(setId(), user.getEmail(), user.getLogin(), user.getName(), user.getBirthday()));
 
         resourceStorage.put(user.getId(), user);
+        log.info("Создана запись по пользователю. Кол-во записей:" + resourceStorage.size());
 
         return user;
     }
 
-    @PutMapping("/users")
+    @PutMapping()
     public User update(@RequestBody User user) {
         if (!resourceStorage.containsKey(user.getId())) {
-            throw new ValidationException("not search key");
+            throw new ValidationException("Не найден id пользователю");
         }
 
         if (!validate(user)) {
-            throw new ValidationException("Error Validate");
+            throw new ValidationException("Ошибка проверки");
         }
 
         resourceStorage.put(user.getId(), setNameIfNameIsBlank(user));
-
+        log.info("Запись id=" + user.getId() + " по пользователю обновлена");
         return user;
     }
 
     private boolean validate(User user) {
-        if (user.getLogin().isEmpty()) {
-            log.info("Empty Login");
+        if (user.getLogin().isBlank()) {
+            log.info("Пустой логин");
             return false;
         }
         if (user.getEmail().isBlank() || !emailValidator.validateEmail(user.getEmail())) {
-            log.info("Email");
+            log.info("Не корректная почта");
             return false;
         }
         if (user.getBirthday().isAfter(LocalDate.now())) {
-            log.info("Birthday");
+            log.info("День рождение не может быть будущим");
             return false;
         }
         return true;
     }
 
-    private User setId(User user) {
-        return new User(idCounter++, user.getEmail(), user.getLogin(), user.getName(), user.getBirthday());
+    private Long setId() {
+        return idCounter++;
     }
 
     private User setNameIfNameIsBlank(User user) {

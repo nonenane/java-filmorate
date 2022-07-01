@@ -12,7 +12,7 @@ import java.util.Map;
 
 public abstract class AbstractController<K, V> {
 
-    Map<K, V> resourceStorage;
+    protected Map<K, V> resourceStorage;
 
     public AbstractController(Map map) {
         resourceStorage = map;
