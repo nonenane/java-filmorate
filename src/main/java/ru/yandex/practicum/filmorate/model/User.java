@@ -2,10 +2,9 @@ package ru.yandex.practicum.filmorate.model;
 
 import lombok.Data;
 import lombok.NonNull;
-import org.springframework.cglib.core.Local;
-
 import javax.validation.constraints.*;
 import java.time.LocalDate;
+import java.util.Set;
 
 @Data
 public class User {

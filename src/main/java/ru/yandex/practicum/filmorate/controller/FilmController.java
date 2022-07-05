@@ -55,11 +55,20 @@ public class FilmController {
         }
 
         if (filmService.getFilm(film.getId()) == null) {
-            throw new ValidationException("Не найден id фильма");
+            throw new FilmNotFoundException();
         }
 
-        Film filmForSave = filmService.update(film);
+        film = filmService.update(film);
         log.info("Запись id=" + film.getId() + " по фильму обновлена");
+        return film;
+    }
+
+    @GetMapping("{id}")
+    public Film getFilm(@PathVariable Long id) {
+        Film film = filmService.getFilm(id);
+        if (film == null)
+            throw new FilmNotFoundException();
+        log.info("Выполнен запрос getFilm.");
         return film;
     }
 
@@ -68,8 +77,8 @@ public class FilmController {
         if (filmService.getFilm(id) == null)
             throw new FilmNotFoundException();
 
-       // if (userService.getUser(userId) == null)
-       //     throw new UserNotFoundException();
+        if (userService.getUser(userId) == null)
+            throw new UserNotFoundException();
 
         log.info("Выполнен запрос addLike.");
         filmService.addLike(id, userId);
@@ -80,8 +89,8 @@ public class FilmController {
         if (filmService.getFilm(id) == null)
             throw new FilmNotFoundException();
 
-        //if (userService.getUser(userId) == null)
-        //    throw new UserNotFoundException();
+        if (userService.getUser(userId) == null)
+            throw new UserNotFoundException();
 
         log.info("Выполнен запрос removeLike.");
         filmService.removeLike(id, userId);
