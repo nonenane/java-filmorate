@@ -7,6 +7,7 @@ import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import lombok.extern.slf4j.Slf4j;
+import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.FilmService;
 import ru.yandex.practicum.filmorate.service.UserService;
 
@@ -51,12 +52,11 @@ public class FilmController {
     @PutMapping()
     public Film update(@Valid @RequestBody Film film) {
         if (film.getId() == null) {
-            throw new ValidationException("Ошибка проверки");
+            throw new ValidationException("Не задан ID фильма");
         }
 
-        if (filmService.getFilm(film.getId()) == null) {
-            throw new FilmNotFoundException();
-        }
+        Optional<Film> optionalFilm = Optional.ofNullable(filmService.getFilm(film.getId()));
+        optionalFilm.orElseThrow(() -> new FilmNotFoundException());
 
         film = filmService.update(film);
         log.info("Запись id=" + film.getId() + " по фильму обновлена");
@@ -65,40 +65,44 @@ public class FilmController {
 
     @GetMapping("{id}")
     public Film getFilm(@PathVariable Long id) {
-        Film film = filmService.getFilm(id);
-        if (film == null)
-            throw new FilmNotFoundException();
-        log.info("Выполнен запрос getFilm.");
+        log.info("Выполнен запрос получения фильма по ID = " + id);
+
+        Optional<Film> optionalFilm = Optional.ofNullable(filmService.getFilm(id));
+        Film film = optionalFilm.orElseThrow(() -> new FilmNotFoundException());
         return film;
     }
 
     @PutMapping("/{id}/like/{userId}")
     public void addLike(@PathVariable Long id, @PathVariable Long userId) {
-        if (filmService.getFilm(id) == null)
-            throw new FilmNotFoundException();
 
-        if (userService.getUser(userId) == null)
-            throw new UserNotFoundException();
+        log.info("Выполнен запрос добавления лайка по фильму ID:" + id + " от пользователя с ID:" + userId);
 
-        log.info("Выполнен запрос addLike.");
+        Optional<Film> optionalFilm = Optional.ofNullable(filmService.getFilm(id));
+        optionalFilm.orElseThrow(() -> new FilmNotFoundException());
+
+        Optional<User> optionalUser = Optional.ofNullable(userService.getUser(userId));
+        optionalUser.orElseThrow(() -> new UserNotFoundException());
+
         filmService.addLike(id, userId);
     }
 
     @DeleteMapping("/{id}/like/{userId}")
     public void removeLike(@PathVariable Long id, @PathVariable Long userId) {
-        if (filmService.getFilm(id) == null)
-            throw new FilmNotFoundException();
 
-        if (userService.getUser(userId) == null)
-            throw new UserNotFoundException();
+        log.info("Выполнен запрос удаления лайка по фильму ID:" + id + " от пользователя с ID:" + userId);
 
-        log.info("Выполнен запрос removeLike.");
+        Optional<Film> optionalFilm = Optional.ofNullable(filmService.getFilm(id));
+        optionalFilm.orElseThrow(() -> new FilmNotFoundException());
+
+        Optional<User> optionalUser = Optional.ofNullable(userService.getUser(userId));
+        optionalUser.orElseThrow(() -> new UserNotFoundException());
+
         filmService.removeLike(id, userId);
     }
 
     @GetMapping("/popular")
     public List<Film> getFilmsWithMostLikes(@RequestParam Optional<Integer> count) {
-        log.info("Выполнен запрос getFilmsWithMostLikes.");
+        log.info("Выполнен запрос получения " + count.orElse(10) + " популярных фильмов.");
         return filmService.getFilmsWithMostLikes(count.orElse(10));
     }
 }
