@@ -101,8 +101,8 @@ public class FilmController {
     }
 
     @GetMapping("/popular")
-    public List<Film> getFilmsWithMostLikes(@RequestParam Optional<Integer> count) {
-        log.info("Выполнен запрос получения " + count.orElse(10) + " популярных фильмов.");
-        return filmService.getFilmsWithMostLikes(count.orElse(10));
+    public List<Film> getFilmsWithMostLikes(@RequestParam(defaultValue = "10") int count) {
+        log.info("Выполнен запрос получения " + count + " популярных фильмов.");
+        return filmService.getFilmsWithMostLikes(count);
     }
 }
