@@ -1,88 +1,108 @@
 package ru.yandex.practicum.filmorate.controller;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import ru.yandex.practicum.filmorate.exceptions.FilmNotFoundException;
+import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import lombok.extern.slf4j.Slf4j;
+import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.service.FilmService;
+import ru.yandex.practicum.filmorate.service.UserService;
 
 import javax.validation.Valid;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 
 
 @Slf4j
 @RestController
 @RequestMapping("/films")
-public class FilmController extends AbstractController<Long, Film> {
+public class FilmController {
 
-    private Long idCounter = 1L;
+    private final FilmService filmService;
+    private final UserService userService;
 
-    public FilmController() {
-        super(new HashMap<>());
+    @Autowired
+    public FilmController(FilmService filmService, UserService userService) {
+        this.filmService = filmService;
+        this.userService = userService;
     }
 
     @GetMapping()
     public List<Film> findAll() {
-        return new ArrayList<>(resourceStorage.values());
+        log.info("Получение всех фильмов");
+        return filmService.getAllFilms();
     }
 
     @PostMapping()
     public Film create(@Valid @RequestBody Film film) {
-        if (!validateFilm(film)) {
-            throw new ValidationException("Ошибка проверки");
-        }
 
         if (film.getId() != null) {
             log.info("Запись уже присутствует.");
             throw new ValidationException("Не пустой id");
         }
 
-        film = new Film(setId(), film.getName(), film.getDescription(), film.getReleaseDate(), film.getDuration());
-
-
-        resourceStorage.put(film.getId(), film);
-        log.info("Создана запись по фильму. Кол-во записей:" + resourceStorage.size());
+        film = filmService.create(film);
+        log.info("Создана запись по фильму. Кол-во записей:" + filmService.getAllFilms().size());
         return film;
     }
 
     @PutMapping()
-    public Film update(@RequestBody Film film) {
-        if (!resourceStorage.containsKey(film.getId())) {
-            throw new ValidationException("Не найден id фильма");
+    public Film update(@Valid @RequestBody Film film) {
+        if (film.getId() == null) {
+            throw new ValidationException("Не задан ID фильма");
         }
 
-        if (!validateFilm(film)) {
-            throw new ValidationException("Ошибка проверки");
-        }
+        Optional<Film> optionalFilm = Optional.ofNullable(filmService.getFilm(film.getId()));
+        optionalFilm.orElseThrow(() -> new FilmNotFoundException());
 
-        resourceStorage.put(film.getId(), film);
+        film = filmService.update(film);
         log.info("Запись id=" + film.getId() + " по фильму обновлена");
         return film;
     }
 
-    private boolean validateFilm(Film film) {
-        if (film.getName().isEmpty()) {
-            log.info("Пустое наименование фильма");
-            return false;
-        }
-        if (film.getDescription().trim().length() > 200) {
-            log.info("Длина фильма больше 200");
-            return false;
-        }
-        if (film.getReleaseDate().isBefore(LocalDate.of(1895, 12, 28))) {
-            log.info("Дата выпуска фильма раньше 28.12.1895");
-            return false;
-        }
-        if (film.getDuration() < 0) {
-            log.info("Продолжительность отрицательная");
-            return false;
-        }
-        return true;
+    @GetMapping("{id}")
+    public Film getFilm(@PathVariable Long id) {
+        log.info("Выполнен запрос получения фильма по ID = " + id);
+
+        Optional<Film> optionalFilm = Optional.ofNullable(filmService.getFilm(id));
+        Film film = optionalFilm.orElseThrow(() -> new FilmNotFoundException());
+        return film;
     }
 
-    private Long setId() {
-        return idCounter++;
+    @PutMapping("/{id}/like/{userId}")
+    public void addLike(@PathVariable Long id, @PathVariable Long userId) {
+
+        log.info("Выполнен запрос добавления лайка по фильму ID:" + id + " от пользователя с ID:" + userId);
+
+        Optional<Film> optionalFilm = Optional.ofNullable(filmService.getFilm(id));
+        optionalFilm.orElseThrow(() -> new FilmNotFoundException());
+
+        Optional<User> optionalUser = Optional.ofNullable(userService.getUser(userId));
+        optionalUser.orElseThrow(() -> new UserNotFoundException());
+
+        filmService.addLike(id, userId);
+    }
+
+    @DeleteMapping("/{id}/like/{userId}")
+    public void removeLike(@PathVariable Long id, @PathVariable Long userId) {
+
+        log.info("Выполнен запрос удаления лайка по фильму ID:" + id + " от пользователя с ID:" + userId);
+
+        Optional<Film> optionalFilm = Optional.ofNullable(filmService.getFilm(id));
+        optionalFilm.orElseThrow(() -> new FilmNotFoundException());
+
+        Optional<User> optionalUser = Optional.ofNullable(userService.getUser(userId));
+        optionalUser.orElseThrow(() -> new UserNotFoundException());
+
+        filmService.removeLike(id, userId);
+    }
+
+    @GetMapping("/popular")
+    public List<Film> getFilmsWithMostLikes(@RequestParam(defaultValue = "10") int count) {
+        log.info("Выполнен запрос получения " + count + " популярных фильмов.");
+        return filmService.getFilmsWithMostLikes(count);
     }
 }
