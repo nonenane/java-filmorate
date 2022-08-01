@@ -25,6 +25,7 @@ public class Film {
     private final LocalDate releaseDate;
     @Min(0)
     private final Integer duration;
-    //private final Set<String> genre;
-    //private final String МРА;
+    @NonNull
+    private final MPA mpa;
+    private final Set<Genre> genres;
 }

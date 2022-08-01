@@ -37,12 +37,13 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS friends (
                                        user_id INTEGER REFERENCES users (user_id),
                                        friend_id INTEGER REFERENCES users (user_id),
-                                       friendship_status BOOLEAN,
-                                       CONSTRAINT pkFriends PRIMARY KEY (user_id, friend_id)
+                                       CONSTRAINT pkFriends PRIMARY KEY (user_id, friend_id),
+                                       CONSTRAINT friend_user_user_unique UNIQUE (user_id,friend_id)
 );
 
 CREATE TABLE IF NOT EXISTS likes (
                                      film_id INTEGER REFERENCES films (film_id),
                                      user_id INTEGER REFERENCES users (user_id),
-                                     CONSTRAINT pkLikes PRIMARY KEY (film_id, user_id)
+                                     CONSTRAINT pkLikes PRIMARY KEY (film_id, user_id),
+                                     CONSTRAINT like_film_user_unique UNIQUE (film_id,user_id)
 );
