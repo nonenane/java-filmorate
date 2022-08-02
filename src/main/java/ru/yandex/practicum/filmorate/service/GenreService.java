@@ -1,6 +1,5 @@
 package ru.yandex.practicum.filmorate.service;
 
-import lombok.extern.java.Log;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.model.Genre;
@@ -12,7 +11,7 @@ import java.util.Optional;
 @Slf4j
 @Service
 public class GenreService {
-    GenreStorage genreStorage;
+    private final GenreStorage genreStorage;
 
     public GenreService(GenreStorage genreStorage) {
         this.genreStorage = genreStorage;

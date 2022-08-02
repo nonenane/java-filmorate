@@ -18,11 +18,11 @@ import java.util.*;
 @Slf4j
 @Component
 @Primary
-public class FilmDbStore implements FilmStorage {
+public class FilmDbStorage implements FilmStorage {
 
     private final JdbcTemplate jdbcTemplate;
 
-    public FilmDbStore(JdbcTemplate jdbcTemplate) {
+    public FilmDbStorage(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
@@ -157,26 +157,6 @@ public class FilmDbStore implements FilmStorage {
             }
         }
         return genreMap;
-    }
-
-    @Override
-    public void addLike(Long id, Long idUser) {
-
-        String sqlAddLike = "MERGE INTO likes (FILM_ID, USER_ID) values (?,?)";
-        jdbcTemplate.update(sqlAddLike, id, idUser);
-
-        String sqlUpdateCountLike = "UPDATE FILMS f SET f.LIKES_COUNTER = (select count(l.USER_ID) from LIKES l where l.FILM_ID = ?) WHERE f.FILM_ID = ?";
-        jdbcTemplate.update(sqlUpdateCountLike, id, id);
-
-    }
-
-    @Override
-    public void removeLike(Long id, Long idUser) {
-        String sqlAddLike = "DELETE FROM likes WHERE FILM_ID = ? and  USER_ID = ?";
-        jdbcTemplate.update(sqlAddLike, id, idUser);
-
-        String sqlUpdateCountLike = "UPDATE FILMS f SET f.LIKES_COUNTER = (select count(l.USER_ID) from LIKES l where l.FILM_ID = ?) WHERE f.FILM_ID = ?";
-        jdbcTemplate.update(sqlUpdateCountLike, id, id);
     }
 
     @Override

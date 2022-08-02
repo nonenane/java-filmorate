@@ -54,10 +54,11 @@ public class FilmController {
             throw new ValidationException("Не задан ID фильма");
         }
 
-        Optional<Film> optionalFilm = filmService.getFilm(film.getId());
-        optionalFilm.orElseThrow(() -> new FilmNotFoundException());
+        //Optional<Film> optionalFilm = filmService.getFilm(film.getId());
+        //optionalFilm.orElseThrow(() -> new FilmNotFoundException());
 
-        optionalFilm = filmService.update(film);
+        Optional<Film> optionalFilm = filmService.update(film);
+        optionalFilm.orElseThrow(() -> new FilmNotFoundException());
         log.info("Запись id=" + film.getId() + " по фильму обновлена");
         return optionalFilm;
     }
@@ -75,11 +76,11 @@ public class FilmController {
 
         log.info("Выполнен запрос добавления лайка по фильму ID:" + id + " от пользователя с ID:" + userId);
 
-        Optional<Film> optionalFilm = filmService.getFilm(id);
-        optionalFilm.orElseThrow(() -> new FilmNotFoundException());
+        //Optional<Film> optionalFilm = filmService.getFilm(id);
+        //optionalFilm.orElseThrow(() -> new FilmNotFoundException());
 
-        Optional<User> optionalUser = userService.getUser(userId);
-        optionalUser.orElseThrow(() -> new UserNotFoundException());
+        //Optional<User> optionalUser = userService.getUser(userId);
+        //optionalUser.orElseThrow(() -> new UserNotFoundException());
 
         filmService.addLike(id, userId);
     }
@@ -89,11 +90,11 @@ public class FilmController {
 
         log.info("Выполнен запрос удаления лайка по фильму ID:" + id + " от пользователя с ID:" + userId);
 
-        Optional<Film> optionalFilm = filmService.getFilm(id);
-        optionalFilm.orElseThrow(() -> new FilmNotFoundException());
+        //Optional<Film> optionalFilm = filmService.getFilm(id);
+        //optionalFilm.orElseThrow(() -> new FilmNotFoundException());
 
-        Optional<User> optionalUser = userService.getUser(userId);
-        optionalUser.orElseThrow(() -> new UserNotFoundException());
+        //Optional<User> optionalUser = userService.getUser(userId);
+        //optionalUser.orElseThrow(() -> new UserNotFoundException());
 
         filmService.removeLike(id, userId);
     }

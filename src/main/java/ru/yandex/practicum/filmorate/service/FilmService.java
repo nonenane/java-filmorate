@@ -4,19 +4,20 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
+import ru.yandex.practicum.filmorate.storage.like.LikeStorage;
 
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
 public class FilmService {
     private final FilmStorage storage;
-    private final Map<Long, Set<Long>> likesMap;
+    private final LikeStorage likeStorage;
 
-    public FilmService(FilmStorage storage) {
+    public FilmService(FilmStorage storage, LikeStorage likeStorage) {
         this.storage = storage;
-        this.likesMap = new HashMap<>();
-        ;
+        this.likeStorage = likeStorage;
     }
 
     public List<Film> getAllFilms() {
@@ -36,12 +37,12 @@ public class FilmService {
     }
 
     public boolean addLike(Long filmId, Long userId) {
-        storage.addLike(filmId, userId);
+        likeStorage.addLike(filmId, userId);
         return true;
     }
 
     public boolean removeLike(Long filmId, Long userId) {
-        storage.removeLike(filmId, userId);
+        likeStorage.removeLike(filmId, userId);
         return true;
 
     }

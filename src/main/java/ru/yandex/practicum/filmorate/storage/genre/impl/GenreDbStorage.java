@@ -6,7 +6,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.model.Genre;
-import ru.yandex.practicum.filmorate.model.MPA;
 import ru.yandex.practicum.filmorate.storage.genre.GenreStorage;
 
 import java.sql.ResultSet;
@@ -17,17 +16,17 @@ import java.util.Optional;
 @Slf4j
 @Component
 @Primary
-public class GenreDbStore implements GenreStorage {
+public class GenreDbStorage implements GenreStorage {
 
     private final JdbcTemplate jdbcTemplate;
 
-    public GenreDbStore(JdbcTemplate jdbcTemplate) {
+    public GenreDbStorage(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
     public List<Genre> getAll() {
-        String sql = "select * from genres";
+        String sql = "select GENRE_ID,NAME from genres";
 
         return jdbcTemplate.query(sql, (rs, rowNum) -> makeGenre(rs));
     }

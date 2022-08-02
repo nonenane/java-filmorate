@@ -16,11 +16,11 @@ import java.util.Optional;
 @Slf4j
 @Component
 @Primary
-public class MpaDbStore implements MpaStorage {
+public class MpaDbStorage implements MpaStorage {
 
     private final JdbcTemplate jdbcTemplate;
 
-    public MpaDbStore(JdbcTemplate jdbcTemplate) {
+    public MpaDbStorage(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
