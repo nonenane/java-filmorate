@@ -3,8 +3,6 @@ package ru.yandex.practicum.filmorate.controller;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.exceptions.AlreadyFriendsException;
-import ru.yandex.practicum.filmorate.exceptions.FriendNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
@@ -14,7 +12,6 @@ import ru.yandex.practicum.filmorate.util.EmailValidator;
 import javax.validation.Valid;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 
 @Slf4j
@@ -37,38 +34,38 @@ public class UserController {
     }
 
     @PostMapping()
-    public User create(@Valid @RequestBody User user) {
+    public Optional<User> create(@Valid @RequestBody User user) {
 
         if (user.getId() != null) {
             log.info("Запись уже присутствует.");
             throw new ValidationException("Не пустой id");
         }
 
-        user = userService.create(user);
+        Optional<User> optionalUser = userService.create(user);
         log.info("Создана запись по пользователю. Кол-во записей:" + userService.getAllUsers().size());
 
-        return user;
+        return optionalUser;
     }
 
     @PutMapping()
-    public User update(@Valid @RequestBody User user) {
-        Optional<User> optionalUser = Optional.ofNullable(userService.getUser(user.getId()));
+    public Optional<User> update(@Valid @RequestBody User user) {
+        Optional<User> optionalUser = userService.update(user);
         optionalUser.orElseThrow(() -> new UserNotFoundException());
 
-        user = userService.update(user);
+
         log.info("Запись id=" + user.getId() + " по пользователю обновлена");
-        return user;
+        return optionalUser;
     }
 
     @GetMapping("/{id}")
-    public User getUser(@PathVariable Long id) {
+    public Optional<User> getUser(@PathVariable Long id) {
 
         log.info("Выполнен запрос getUser по ID:" + id);
 
-        Optional<User> optionalUser = Optional.ofNullable(userService.getUser(id));
-        User user = optionalUser.orElseThrow(() -> new UserNotFoundException());
+        Optional<User> optionalUser = userService.getUser(id);
+        optionalUser.orElseThrow(() -> new UserNotFoundException());
 
-        return user;
+        return optionalUser;
     }
 
     @PutMapping("/{id}/friends/{friendId}")
@@ -76,18 +73,13 @@ public class UserController {
 
         log.info("Выполнен запрос addFriend для ID:" + id + " добавление ID:" + friendId);
 
-        Optional<User> optionalUser = Optional.ofNullable(userService.getUser(id));
+        Optional<User> optionalUser = userService.getUser(id);
         optionalUser.orElseThrow(() -> new UserNotFoundException());
 
-        optionalUser = Optional.ofNullable(userService.getUser(friendId));
+        optionalUser = userService.getUser(friendId);
         optionalUser.orElseThrow(() -> new UserNotFoundException());
-
-
-        if (userService.getAllFriends(id).contains(friendId))
-            throw new AlreadyFriendsException();
 
         userService.addFriend(id, friendId);
-
     }
 
     @DeleteMapping("/{id}/friends/{friendId}")
@@ -95,14 +87,11 @@ public class UserController {
 
         log.info("Выполнен запрос removeFriend для ID:" + id + " добавление ID:" + friendId);
 
-        Optional<User> optionalUser = Optional.ofNullable(userService.getUser(id));
+        Optional<User> optionalUser = userService.getUser(id);
         optionalUser.orElseThrow(() -> new UserNotFoundException());
 
-        optionalUser = Optional.ofNullable(userService.getUser(friendId));
+        optionalUser = userService.getUser(friendId);
         optionalUser.orElseThrow(() -> new UserNotFoundException());
-
-        if (!userService.getAllFriends(id).contains(friendId))
-            throw new FriendNotFoundException();
 
         userService.removeFriend(id, friendId);
     }
@@ -111,13 +100,10 @@ public class UserController {
     public List<User> getFriends(@PathVariable Long id) {
 
         log.info("Выполнен запрос getFriends по ID:" + id);
-        Optional<User> optionalUser = Optional.ofNullable(userService.getUser(id));
+        Optional<User> optionalUser = userService.getUser(id);
         optionalUser.orElseThrow(() -> new UserNotFoundException());
 
-
-        return userService.getAllFriends(id).stream()
-                .map(userService::getUser)
-                .collect(Collectors.toList());
+        return userService.getAllFriends(id);
     }
 
     @GetMapping("/{id}/friends/common/{otherId}")

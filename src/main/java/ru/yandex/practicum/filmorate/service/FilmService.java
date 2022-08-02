@@ -4,62 +4,50 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
+import ru.yandex.practicum.filmorate.storage.like.LikeStorage;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
 public class FilmService {
     private final FilmStorage storage;
-    private final Map<Long, Set<Long>> likesMap;
+    private final LikeStorage likeStorage;
 
-    public FilmService(FilmStorage storage) {
+    public FilmService(FilmStorage storage, LikeStorage likeStorage) {
         this.storage = storage;
-        this.likesMap = new HashMap<>();;
+        this.likeStorage = likeStorage;
     }
 
     public List<Film> getAllFilms() {
         return storage.getAllFilms();
     }
 
-    public Film getFilm(Long id) {
+    public Optional<Film> getFilm(Long id) {
         return storage.getFilm(id);
     }
 
-    public Film create(Film film) {
+    public Optional<Film> create(Film film) {
         return storage.create(film);
     }
 
-    public Film update(Film film) {
+    public Optional<Film> update(Film film) {
         return storage.update(film);
     }
 
     public boolean addLike(Long filmId, Long userId) {
-        initiateCheck(filmId);
-
-        likesMap.get(filmId).add(userId);
+        likeStorage.addLike(filmId, userId);
         return true;
     }
 
     public boolean removeLike(Long filmId, Long userId) {
-        initiateCheck(filmId);
-
-        likesMap.get(filmId).remove(userId);
+        likeStorage.removeLike(filmId, userId);
         return true;
 
     }
 
     public List<Film> getFilmsWithMostLikes(Integer num) {
-        return storage.getAllFilms().stream()
-                .peek((x) -> initiateCheck(x.getId()))
-                .sorted((x, y) -> likesMap.get(y.getId()).size() - likesMap.get(x.getId()).size())
-                .limit(num)
-                .collect(Collectors.toList());
-    }
-
-    private void initiateCheck(Long id) {
-        if (!likesMap.containsKey(id))
-            likesMap.put(id, new HashSet<>());
+        return storage.getPopularFilm(num);
     }
 }
