@@ -4,10 +4,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exceptions.FilmNotFoundException;
-import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.FilmService;
 import ru.yandex.practicum.filmorate.service.UserService;
 
@@ -54,9 +52,6 @@ public class FilmController {
             throw new ValidationException("Не задан ID фильма");
         }
 
-        //Optional<Film> optionalFilm = filmService.getFilm(film.getId());
-        //optionalFilm.orElseThrow(() -> new FilmNotFoundException());
-
         Optional<Film> optionalFilm = filmService.update(film);
         optionalFilm.orElseThrow(() -> new FilmNotFoundException());
         log.info("Запись id=" + film.getId() + " по фильму обновлена");
@@ -75,27 +70,12 @@ public class FilmController {
     public void addLike(@PathVariable Long id, @PathVariable Long userId) {
 
         log.info("Выполнен запрос добавления лайка по фильму ID:" + id + " от пользователя с ID:" + userId);
-
-        //Optional<Film> optionalFilm = filmService.getFilm(id);
-        //optionalFilm.orElseThrow(() -> new FilmNotFoundException());
-
-        //Optional<User> optionalUser = userService.getUser(userId);
-        //optionalUser.orElseThrow(() -> new UserNotFoundException());
-
         filmService.addLike(id, userId);
     }
 
     @DeleteMapping("/{id}/like/{userId}")
     public void removeLike(@PathVariable Long id, @PathVariable Long userId) {
-
         log.info("Выполнен запрос удаления лайка по фильму ID:" + id + " от пользователя с ID:" + userId);
-
-        //Optional<Film> optionalFilm = filmService.getFilm(id);
-        //optionalFilm.orElseThrow(() -> new FilmNotFoundException());
-
-        //Optional<User> optionalUser = userService.getUser(userId);
-        //optionalUser.orElseThrow(() -> new UserNotFoundException());
-
         filmService.removeLike(id, userId);
     }
 

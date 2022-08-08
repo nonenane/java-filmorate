@@ -138,7 +138,6 @@ public class FilmDbStorage implements FilmStorage {
         values.put("releaseDate", film.getReleaseDate());
         values.put("duration", film.getDuration());
         values.put("RATING_MPA_ID", film.getMpa().getId());
-        //values.put("likes_counter", 0);
         return values;
     }
 
