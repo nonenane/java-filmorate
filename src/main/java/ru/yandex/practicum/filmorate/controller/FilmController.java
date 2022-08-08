@@ -1,13 +1,11 @@
 package ru.yandex.practicum.filmorate.controller;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exceptions.FilmNotFoundException;
-import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
-import lombok.extern.slf4j.Slf4j;
-import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.FilmService;
 import ru.yandex.practicum.filmorate.service.UserService;
 
@@ -37,66 +35,47 @@ public class FilmController {
     }
 
     @PostMapping()
-    public Film create(@Valid @RequestBody Film film) {
+    public Optional<Film> create(@Valid @RequestBody Film film) {
 
         if (film.getId() != null) {
             log.info("Запись уже присутствует.");
             throw new ValidationException("Не пустой id");
         }
 
-        film = filmService.create(film);
         log.info("Создана запись по фильму. Кол-во записей:" + filmService.getAllFilms().size());
-        return film;
+        return filmService.create(film);
     }
 
     @PutMapping()
-    public Film update(@Valid @RequestBody Film film) {
+    public Optional<Film> update(@Valid @RequestBody Film film) {
         if (film.getId() == null) {
             throw new ValidationException("Не задан ID фильма");
         }
 
-        Optional<Film> optionalFilm = Optional.ofNullable(filmService.getFilm(film.getId()));
+        Optional<Film> optionalFilm = filmService.update(film);
         optionalFilm.orElseThrow(() -> new FilmNotFoundException());
-
-        film = filmService.update(film);
         log.info("Запись id=" + film.getId() + " по фильму обновлена");
-        return film;
+        return optionalFilm;
     }
 
     @GetMapping("{id}")
-    public Film getFilm(@PathVariable Long id) {
+    public Optional<Film> getFilm(@PathVariable Long id) {
         log.info("Выполнен запрос получения фильма по ID = " + id);
-
-        Optional<Film> optionalFilm = Optional.ofNullable(filmService.getFilm(id));
-        Film film = optionalFilm.orElseThrow(() -> new FilmNotFoundException());
-        return film;
+        Optional<Film> optionalFilm = filmService.getFilm(id);
+        optionalFilm.orElseThrow(() -> new FilmNotFoundException());
+        return optionalFilm;
     }
 
     @PutMapping("/{id}/like/{userId}")
     public void addLike(@PathVariable Long id, @PathVariable Long userId) {
 
         log.info("Выполнен запрос добавления лайка по фильму ID:" + id + " от пользователя с ID:" + userId);
-
-        Optional<Film> optionalFilm = Optional.ofNullable(filmService.getFilm(id));
-        optionalFilm.orElseThrow(() -> new FilmNotFoundException());
-
-        Optional<User> optionalUser = Optional.ofNullable(userService.getUser(userId));
-        optionalUser.orElseThrow(() -> new UserNotFoundException());
-
         filmService.addLike(id, userId);
     }
 
     @DeleteMapping("/{id}/like/{userId}")
     public void removeLike(@PathVariable Long id, @PathVariable Long userId) {
-
         log.info("Выполнен запрос удаления лайка по фильму ID:" + id + " от пользователя с ID:" + userId);
-
-        Optional<Film> optionalFilm = Optional.ofNullable(filmService.getFilm(id));
-        optionalFilm.orElseThrow(() -> new FilmNotFoundException());
-
-        Optional<User> optionalUser = Optional.ofNullable(userService.getUser(userId));
-        optionalUser.orElseThrow(() -> new UserNotFoundException());
-
         filmService.removeLike(id, userId);
     }
 

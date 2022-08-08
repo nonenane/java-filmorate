@@ -4,8 +4,11 @@ import lombok.Data;
 import lombok.NonNull;
 import ru.yandex.practicum.filmorate.myAnnotation.myDate;
 
-import javax.validation.constraints.*;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.Size;
 import java.time.LocalDate;
+import java.util.Set;
 
 @Data
 public class Film {
@@ -13,7 +16,7 @@ public class Film {
     @NonNull
     @NotBlank
     private final String name;
-    @Size(max=200)
+    @Size(max = 200)
     @NonNull
     @NotBlank
     private final String description;
@@ -22,4 +25,7 @@ public class Film {
     private final LocalDate releaseDate;
     @Min(0)
     private final Integer duration;
+    @NonNull
+    private final MPA mpa;
+    private final Set<Genre> genres;
 }
