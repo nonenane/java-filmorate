@@ -6,6 +6,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Component;
+import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.users.UserStorage;
 
@@ -91,5 +92,13 @@ public class UserDbStorage implements UserStorage {
                 user.getBirthday(),
                 user.getId());
         return getUser(user.getId());
+    }
+
+    @Override
+    public void removeByUserId(Long userId) throws UserNotFoundException {
+        String sqlString = "delete from USERS where USER_ID=?";
+        if (jdbcTemplate.update(sqlString, userId) == 0) {
+            throw new UserNotFoundException();
+        }
     }
 }
