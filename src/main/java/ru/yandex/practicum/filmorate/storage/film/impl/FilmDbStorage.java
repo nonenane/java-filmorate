@@ -180,10 +180,7 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public void removeByFilmId(Long filmId) {
-
-        jdbcTemplate.update("delete from FILM_GENRES where FILM_ID=?", filmId);
-        jdbcTemplate.update("delete from LIKES where FILM_ID=?", filmId);
-        String sqlString = "delete from FILMS where FILM_ID=?";
+         String sqlString = "delete from FILMS where FILM_ID=?";
         if (jdbcTemplate.update(sqlString, filmId) == 0) {
             throw new FilmNotFoundException();
         }
