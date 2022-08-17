@@ -68,7 +68,7 @@ public class UserController {
         return optionalUser;
     }
     @DeleteMapping(value = "/{id}")
-    public void removeByUserId(@Valid @PathVariable Long id) {
+    public void removeByUserId(@Valid @PathVariable Long id ) {
         log.info("Выполнен запрос removeByUserId для ID:" + id );
         userService.removeByUserId(id);
     }
