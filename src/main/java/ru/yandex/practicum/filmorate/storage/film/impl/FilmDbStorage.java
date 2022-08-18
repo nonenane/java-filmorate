@@ -3,6 +3,9 @@ package ru.yandex.practicum.filmorate.storage.film.impl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Component;
@@ -180,10 +183,76 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public void removeByFilmId(Long filmId) {
-         String sqlString = "delete from FILMS where FILM_ID=?";
+        String sqlString = "delete from FILMS where FILM_ID=?";
         if (jdbcTemplate.update(sqlString, filmId) == 0) {
             throw new FilmNotFoundException();
         }
+    }
+
+    @Override
+    public List<Film> getFilmsBySearch(String searchQuery, String searchBy) {
+        searchQuery = searchQuery.toLowerCase();
+
+        String[] subs = searchBy.split(",");
+        Set<String> fieldsQuery = new HashSet<>();
+        if (subs.length == 0) {
+            fieldsQuery.add("title");
+        } else {
+            for (String s : subs) {
+                fieldsQuery.add(s.toLowerCase());
+            }
+        }
+
+        String sqlString = "" +
+                "select  " +
+                "films.FILM_ID,  " +
+                "films.NAME, " +
+                "films.DESCRIPTION, " +
+                "films.RELEASEDATE, " +
+                "films.DURATION, " +
+                "rating_mpa.RATING_MPA_ID as RATING_MPA_ID," +
+                "rating_mpa.NAME as RATING_MPA_NAME, " +
+                "count (likes.USER_ID)  as filmsLikes " +
+                "from FILMS as films " +
+                "left join RATING_MPA as rating_mpa on films.RATING_MPA_ID = RATING_MPA.RATING_MPA_ID " +
+                "left join LIKES as likes on films.FILM_ID = likes.FILM_ID "+
+                "where LOWER (films.NAME) like '%" + searchQuery + "%'" +
+                "and 't1' = 'title'"+
+                "group by likes.user_id " +
+                "order by count(likes.USER_ID)";
+
+
+        if (fieldsQuery.contains("title")) {
+            sqlString = sqlString.replace("t1", "title");
+        }
+        if (fieldsQuery.contains("director")) {
+            sqlString = sqlString.replace("t2", "director");
+        }
+        SqlRowSet rows = jdbcTemplate.queryForRowSet(sqlString);
+
+        List<Film> films = new ArrayList<>();
+
+
+        String sql_film = "select fg.FILM_ID,g.GENRE_ID,g.NAME " +
+                "from film_genres fg join GENRES g on g.GENRE_ID = fg.GENRE_ID " +
+                "WHERE fg.FILM_ID = ?";
+
+        if (rows.next()) {
+            SqlRowSet genreRows = jdbcTemplate.queryForRowSet(sql_film, rows.getLong("film_id"));
+            Map<Long, Set<Genre>> setMap = makeGenreMap(genreRows);
+
+            Film film = new Film(
+                    rows.getLong("film_id"),
+                    rows.getString("name"),
+                    rows.getString("description"),
+                    rows.getDate("releaseDate").toLocalDate(),
+                    rows.getInt("duration"),
+                    new MPA(rows.getLong("RATING_MPA_ID"), rows.getString("RATING_MPA_NAME")),
+                    setMap.getOrDefault(rows.getLong("film_id"), new HashSet<>()));
+            films.add(film);
+        }
+
+        return films;
     }
 
 }

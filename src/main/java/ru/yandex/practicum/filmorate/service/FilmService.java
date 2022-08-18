@@ -53,4 +53,8 @@ public class FilmService {
     public List<Film> getFilmsWithMostLikes(Integer num) {
         return storage.getPopularFilm(num);
     }
+
+    public List<Film> getFilmsBySearch(String searchQuery, String searchBy) {
+        return storage.getFilmsBySearch(searchQuery,searchBy);
+    }
 }
