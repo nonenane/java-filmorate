@@ -96,6 +96,7 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public void removeByUserId(Long userId) throws UserNotFoundException {
+
         String sqlString = "delete from USERS where USER_ID=?";
         if (jdbcTemplate.update(sqlString, userId) == 0) {
             throw new UserNotFoundException();
