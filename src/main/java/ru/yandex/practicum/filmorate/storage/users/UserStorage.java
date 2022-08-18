@@ -13,4 +13,6 @@ public interface UserStorage {
     Optional<User> create(User user);
 
     Optional<User> update(User user);
+
+    void removeByUserId(Long userId);
 }

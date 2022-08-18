@@ -65,6 +65,11 @@ public class FilmController {
         optionalFilm.orElseThrow(() -> new FilmNotFoundException());
         return optionalFilm;
     }
+    @DeleteMapping(value = "/{id}")
+    public void removeByFilmId(@Valid @PathVariable Long id) {
+        log.info("Выполнен запрос removeByFilmId для ID:" + id );
+        filmService.removeByFilmId(id);
+    }
 
     @PutMapping("/{id}/like/{userId}")
     public void addLike(@PathVariable Long id, @PathVariable Long userId) {
