@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS friends (
 
 CREATE TABLE IF NOT EXISTS likes (
                                      film_id INTEGER REFERENCES films (film_id) on delete cascade,
-                                     user_id INTEGER REFERENCES users (user_id)on delete cascade,
+                                     user_id INTEGER REFERENCES users (user_id) on delete cascade,
                                      CONSTRAINT pkLikes PRIMARY KEY (film_id, user_id),
                                      CONSTRAINT like_film_user_unique UNIQUE (film_id,user_id)
 );
@@ -54,6 +54,14 @@ CREATE TABLE IF NOT EXISTS reviews (
                                      isPositive boolean NOT NULL,
                                      user_id INTEGER REFERENCES users (user_id),
                                      film_id INTEGER REFERENCES films (film_id),
-                                     useful INTEGER NOT NULL DEFAULT  0
-                                     --CONSTRAINT review_film_user_unique UNIQUE (user_id,film_id)
+                                     useful INTEGER NOT NULL DEFAULT  0,
+                                     CONSTRAINT review_film_user_unique UNIQUE (user_id,film_id)
+);
+
+CREATE TABLE IF NOT EXISTS reviewLikes (
+                                     reviewId INTEGER REFERENCES reviews (reviewId) on delete cascade,
+                                     user_id INTEGER REFERENCES users (user_id) on delete cascade,
+                                     isPositive boolean not null,
+                                     CONSTRAINT pkReviewLikes PRIMARY KEY (reviewId, user_id),
+                                     CONSTRAINT reviewLike_review_user_unique UNIQUE (reviewId,user_id)
 );

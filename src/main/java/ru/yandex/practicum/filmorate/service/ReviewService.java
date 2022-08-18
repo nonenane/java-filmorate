@@ -9,6 +9,7 @@ import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.review.ReviewStorage;
 import ru.yandex.practicum.filmorate.storage.users.UserStorage;
 
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -41,7 +42,30 @@ public class ReviewService {
         return reviewStorage.update(review);
     }
 
+    public void delete(Long id) {
+        reviewStorage.delete(id);
+    }
+
     public Optional<Review> getReview(Long id) {
         return reviewStorage.getReview(id);
+    }
+
+    public List<Review> getAllReviews(int count) {
+        return reviewStorage.getAllReviews(count);
+    }
+
+    public List<Review> getAllReviews(Long filmId, int count) {
+
+        filmStorage.getFilm(filmId).orElseThrow(() -> new FilmNotFoundException());
+
+        return reviewStorage.getAllReviews(filmId, count);
+    }
+
+    public void addLike(Long reviewID, Long userId, boolean isPositive) {
+        reviewStorage.addLike(reviewID, userId, isPositive);
+    }
+
+    public void removeLike(Long reviewID, Long userId, boolean isPositive) {
+        reviewStorage.removeLike(reviewID, userId, isPositive);
     }
 }

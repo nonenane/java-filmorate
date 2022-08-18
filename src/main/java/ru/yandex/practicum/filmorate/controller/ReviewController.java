@@ -3,12 +3,11 @@ package ru.yandex.practicum.filmorate.controller;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.exceptions.FilmNotFoundException;
+import ru.yandex.practicum.filmorate.exceptions.ReviewNotFoundException;
 import ru.yandex.practicum.filmorate.model.Review;
 import ru.yandex.practicum.filmorate.service.ReviewService;
 
 import javax.validation.Valid;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -27,62 +26,63 @@ public class ReviewController {
 
 
     @GetMapping
-    public List<Review> getAllReview(@RequestParam(name = "filmId", required = false) String filmId, @RequestParam(defaultValue = "10") int count) {
-        return new ArrayList<>();
+    public List<Review> getAllReview(@RequestParam(name = "filmId", required = false) Long filmId, @RequestParam(defaultValue = "10") int count) {
+
+        if (filmId == null) {
+            return reviewService.getAllReviews(count);
+        } else {
+            return reviewService.getAllReviews(filmId, count);
+        }
     }
 
     @PostMapping
     public Optional<Review> add(@Valid @RequestBody Review review) {
+        log.info("Выполнен запрос добавления отзыва");
         return reviewService.create(review);
     }
 
     @PutMapping
     public Optional<Review> update(@Valid @RequestBody Review review) {
+        log.info("Выполнен запрос обновления отзывы по ID = " + review.getId());
         return reviewService.update(review);
     }
 
-    @DeleteMapping
-    public Optional<Review> deleteReview(@PathVariable Long id) {
+    @DeleteMapping("{id}")
+    public void deleteReview(@PathVariable Long id) {
         log.info("Выполнен запрос удаление отзывы по ID = " + id);
-        //Optional<Film> optionalFilm = filmService.getFilm(id);
-        //optionalFilm.orElseThrow(() -> new FilmNotFoundException());
-        //return optionalFilm;
-        return Optional.empty();
+        reviewService.delete(id);
     }
 
     @GetMapping("{id}")
     public Optional<Review> getReview(@PathVariable Long id) {
         log.info("Выполнен запрос получение отзывы по ID = " + id);
         Optional<Review> optionalReview = reviewService.getReview(id);
-        optionalReview.orElseThrow(() -> new FilmNotFoundException());
+        optionalReview.orElseThrow(() -> new ReviewNotFoundException());
         return optionalReview;
     }
 
     @PutMapping("/{id}/like/{userId}")
     public void addLike(@PathVariable Long id, @PathVariable Long userId) {
-
-        log.info("Выполнен запрос добавления лайка по фильму ID:" + id + " от пользователя с ID:" + userId);
-        //filmService.addLike(id, userId);
+        log.info("Выполнен запрос добавления лайка по отзыву ID:" + id + " от пользователя с ID:" + userId);
+        reviewService.addLike(id, userId, true);
     }
 
     @PutMapping("/{id}/dislike/{userId}")
     public void addDislike(@PathVariable Long id, @PathVariable Long userId) {
-
-        log.info("Выполнен запрос добавления лайка по фильму ID:" + id + " от пользователя с ID:" + userId);
-        //filmService.addLike(id, userId);
+        log.info("Выполнен запрос добавления дизлайка по отзыву ID:" + id + " от пользователя с ID:" + userId);
+        reviewService.addLike(id, userId, false);
     }
 
     @DeleteMapping("/{id}/like/{userId}")
     public void removeLike(@PathVariable Long id, @PathVariable Long userId) {
 
-        log.info("Выполнен запрос добавления лайка по фильму ID:" + id + " от пользователя с ID:" + userId);
-        //filmService.addLike(id, userId);
+        log.info("Выполнен запрос удаления лайка по отзыву ID:" + id + " от пользователя с ID:" + userId);
+        reviewService.removeLike(id, userId, true);
     }
 
     @DeleteMapping("/{id}/dislike/{userId}")
     public void removeDislike(@PathVariable Long id, @PathVariable Long userId) {
-
-        log.info("Выполнен запрос добавления лайка по фильму ID:" + id + " от пользователя с ID:" + userId);
-        //filmService.addLike(id, userId);
+        log.info("Выполнен запрос удаления дизлайка по отзыву ID:" + id + " от пользователя с ID:" + userId);
+        reviewService.removeLike(id, userId, false);
     }
 }

@@ -6,10 +6,13 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Component;
-import ru.yandex.practicum.filmorate.model.Genre;
+import ru.yandex.practicum.filmorate.exceptions.FilmNotFoundException;
+import ru.yandex.practicum.filmorate.exceptions.ReviewNotFoundException;
 import ru.yandex.practicum.filmorate.model.Review;
 import ru.yandex.practicum.filmorate.storage.review.ReviewStorage;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,7 +33,34 @@ public class ReviewDbStorage implements ReviewStorage {
 
     @Override
     public List<Review> getAllReviews(int count) {
-        return null;
+
+        String sql = "select  r.REVIEWID, r.CONTENT,r.ISPOSITIVE,r.USER_ID,r.FILM_ID,r.USEFUL " +
+                "from reviews as r " +
+                "ORDER BY USEFUL DESC " +
+                "LIMIT ?";
+
+        return jdbcTemplate.query(sql, (rs, rowNum) -> makeReview(rs), count);
+    }
+
+    @Override
+    public List<Review> getAllReviews(Long filmId, int count) {
+        String sql = "select  r.REVIEWID, r.CONTENT,r.ISPOSITIVE,r.USER_ID,r.FILM_ID,r.USEFUL " +
+                "from reviews as r " +
+                "WHERE FILM_ID = ? " +
+                "ORDER BY USEFUL DESC " +
+                "LIMIT ?";
+
+        return jdbcTemplate.query(sql, (rs, rowNum) -> makeReview(rs), filmId, count);
+    }
+
+    private Review makeReview(ResultSet reviewRow) throws SQLException {
+        return new Review(reviewRow.getLong("REVIEWID"),
+                reviewRow.getString("CONTENT"),
+                reviewRow.getBoolean("ISPOSITIVE"),
+                reviewRow.getLong("USER_ID"),
+                reviewRow.getLong("FILM_ID"),
+                reviewRow.getInt("USEFUL")
+        );
     }
 
     @Override
@@ -42,7 +72,7 @@ public class ReviewDbStorage implements ReviewStorage {
         SqlRowSet reviewRow = jdbcTemplate.queryForRowSet(sql, id);
 
         if (reviewRow.next()) {
-            log.info("Найден фильм: {} {}", reviewRow.getString("reviewId"), reviewRow.getString("content"));
+            log.info("Отзыв : {} {}", reviewRow.getString("reviewId"), reviewRow.getString("content"));
             Review review = new Review(reviewRow.getLong("reviewId"),
                     reviewRow.getString("content"),
                     reviewRow.getBoolean("isPositive"),
@@ -52,7 +82,7 @@ public class ReviewDbStorage implements ReviewStorage {
             );
             return Optional.of(review);
         } else {
-            log.info("Фильм с идентификатором {} не найден.", id);
+            log.info("Отзыв с идентификатором {} не найден.", id);
             return Optional.empty();
         }
     }
@@ -81,26 +111,41 @@ public class ReviewDbStorage implements ReviewStorage {
 
     @Override
     public Optional<Review> update(Review review) {
-        String sql = "update REVIEWS set CONTENT  = ?, ISPOSITIVE = ?, USER_ID = ?, FILM_ID = ?,USEFUL = ? where REVIEWID = ?";
+        String sql = "update REVIEWS set CONTENT  = ?, ISPOSITIVE = ? where REVIEWID = ?";
         jdbcTemplate.update(sql,
                 review.getContent(),
                 review.getIsPositive(),
-                review.getUserId(),
-                review.getFilmId(),
-                review.getUseful(),
                 review.getId());
 
         return getReview(review.getId());
     }
 
     @Override
-    public void addLike(boolean isPositive) {
-
+    public void delete(Long id) {
+        String sql = "DELETE FROM REVIEWS where reviewId = ?";
+        if (jdbcTemplate.update(sql, id) == 0) {
+            throw new ReviewNotFoundException();
+        }
     }
 
     @Override
-    public void removeLike(boolean isPositive) {
+    public void addLike(Long reviewID, Long userId, boolean isPositive) {
+        String sql = "INSERT INTO reviewLikes (REVIEWID,USER_ID,ISPOSITIVE) VALUES (?,?,?)";
+        if (jdbcTemplate.update(sql, reviewID, userId, isPositive) == 1) {
+            String sqlUpdateReview = "UPDATE REVIEWS SET USEFUL = USEFUL " + (isPositive ? "+" : "-") + " 1 " +
+                    "WHERE REVIEWID = ?";
+            jdbcTemplate.update(sqlUpdateReview, reviewID);
+        }
+    }
 
+    @Override
+    public void removeLike(Long reviewID, Long userId, boolean isPositive) {
+        String sql = "DELETE FROM  reviewLikes WHERE REVIEWID =? AND USER_ID = ? AND ISPOSITIVE = ?";
+        if (jdbcTemplate.update(sql, reviewID, userId, isPositive) == 1) {
+            String sqlUpdateReview = "UPDATE REVIEWS SET USEFUL = USEFUL " + (isPositive ? "-" : "+") + " 1 " +
+                    "WHERE REVIEWID = ?";
+            jdbcTemplate.update(sqlUpdateReview, reviewID);
+        }
     }
 
 }
