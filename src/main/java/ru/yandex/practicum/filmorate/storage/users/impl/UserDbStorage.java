@@ -94,6 +94,11 @@ public class UserDbStorage implements UserStorage {
         return getUser(user.getId());
     }
 
+    /**
+     * удаление пользователя
+     * @param userId
+     * @throws UserNotFoundException
+     */
     @Override
     public void removeByUserId(Long userId) throws UserNotFoundException {
         String sqlString = "delete from USERS where USER_ID=?";
