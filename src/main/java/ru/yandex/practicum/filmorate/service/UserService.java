@@ -1,6 +1,7 @@
 package ru.yandex.practicum.filmorate.service;
 
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.friends.FriendsStorage;
 import ru.yandex.practicum.filmorate.storage.users.UserStorage;
@@ -32,6 +33,11 @@ public class UserService {
 
     public Optional<User> update(User user) {
         return userStorage.update(setNameIfNameIsBlank(user));
+    }
+
+    public void removeByUserId (Long userId) throws ValidationException{
+        userStorage.removeByUserId(userId);
+
     }
 
     private User setNameIfNameIsBlank(User user) {

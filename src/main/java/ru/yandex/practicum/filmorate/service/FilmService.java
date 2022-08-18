@@ -2,6 +2,7 @@ package ru.yandex.practicum.filmorate.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.like.LikeStorage;
@@ -35,7 +36,9 @@ public class FilmService {
     public Optional<Film> update(Film film) {
         return storage.update(film);
     }
-
+    public void removeByFilmId (Long userId) throws ValidationException {
+        storage.removeByFilmId(userId);
+    }
     public boolean addLike(Long filmId, Long userId) {
         likeStorage.addLike(filmId, userId);
         return true;

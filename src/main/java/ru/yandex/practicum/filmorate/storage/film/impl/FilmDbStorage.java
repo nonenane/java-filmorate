@@ -6,6 +6,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Component;
+import ru.yandex.practicum.filmorate.exceptions.FilmNotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.MPA;
@@ -176,4 +177,13 @@ public class FilmDbStorage implements FilmStorage {
         List<Film> films = jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs, setMap), count);
         return films;
     }
+
+    @Override
+    public void removeByFilmId(Long filmId) {
+         String sqlString = "delete from FILMS where FILM_ID=?";
+        if (jdbcTemplate.update(sqlString, filmId) == 0) {
+            throw new FilmNotFoundException();
+        }
+    }
+
 }
