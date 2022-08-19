@@ -7,6 +7,8 @@ import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exceptions.FilmNotFoundException;
+import ru.yandex.practicum.filmorate.exceptions.DirectorNotFoundException;
+import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.MPA;
@@ -37,10 +39,16 @@ public class FilmDbStorage implements FilmStorage {
         String sql_film = "select fg.FILM_ID,g.GENRE_ID,g.NAME " +
                 "from film_genres fg join GENRES g on g.GENRE_ID = fg.GENRE_ID";
 
+        String sql_director = "select fd.FILM_ID,d. DIRECTOR_ID,d.NAME " +
+                "from film_directors fd join DIRECTORS d on d.DIRECTOR_ID = fd.DIRECTOR_ID";
+
         SqlRowSet genreRows = jdbcTemplate.queryForRowSet(sql_film);
         Map<Long, Set<Genre>> setMap = makeGenreMap(genreRows);
 
-        List<Film> films = jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs, setMap));
+        SqlRowSet directorRows = jdbcTemplate.queryForRowSet(sql_director);
+        Map<Long, Set<Director>> setMapDirector = makeDirectorMap(directorRows);
+
+        List<Film> films = jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs, setMap, setMapDirector));
         return films;
     }
 
@@ -56,8 +64,15 @@ public class FilmDbStorage implements FilmStorage {
                 "from film_genres fg join GENRES g on g.GENRE_ID = fg.GENRE_ID " +
                 "WHERE fg.FILM_ID = ?";
 
+        String sql_director = "select fd.FILM_ID,d.DIRECTOR_ID,d.NAME " +
+                "from film_directors fd join DIRECTORS d on d.DIRECTOR_ID = fd.DIRECTOR_ID " +
+                "WHERE fd.FILM_ID = ?";
+
         SqlRowSet genreRows = jdbcTemplate.queryForRowSet(sql_film, id);
         Map<Long, Set<Genre>> setMap = makeGenreMap(genreRows);
+
+        SqlRowSet directorRows = jdbcTemplate.queryForRowSet(sql_director, id);
+        Map<Long, Set<Director>> setMapDirector = makeDirectorMap(directorRows);
 
         SqlRowSet filmRows = jdbcTemplate.queryForRowSet(sql, id);
 
@@ -69,7 +84,8 @@ public class FilmDbStorage implements FilmStorage {
                     filmRows.getDate("releaseDate").toLocalDate(),
                     filmRows.getInt("duration"),
                     new MPA(filmRows.getLong("RATING_MPA_ID"), filmRows.getString("MPA_NAME")),
-                    setMap.getOrDefault(id, new HashSet<>())
+                    setMap.getOrDefault(id, new HashSet<>()),
+                    setMapDirector.getOrDefault(id, new HashSet<>())
             );
             return Optional.of(film);
         } else {
@@ -93,6 +109,13 @@ public class FilmDbStorage implements FilmStorage {
             }
         }
 
+        if (film.getDirectors() != null) {
+            String sqlInsertFilmDirector = "INSERT INTO FILM_DIRECTORS (FILM_ID, DIRECTOR_ID) values (?,?)";
+            for (Director director : film.getDirectors()) {
+                jdbcTemplate.update(sqlInsertFilmDirector, id, director.getId());
+            }
+        }
+
         return getFilm(id);
     }
 
@@ -111,6 +134,9 @@ public class FilmDbStorage implements FilmStorage {
         String sqlDelGengerFilm = "DELETE FROM film_genres WHERE FILM_ID = ?";
         jdbcTemplate.update(sqlDelGengerFilm, film.getId());
 
+        String sqlDelDirectorFilm = "DELETE FROM FILM_DIRECTORS WHERE FILM_ID = ?";
+        jdbcTemplate.update(sqlDelDirectorFilm, film.getId());
+
         if (film.getGenres() != null) {
             String sqlInsertFilmGenre = "INSERT INTO film_genres (FILM_ID,GENRE_ID) values (?,?)";
             for (Genre genre : film.getGenres()) {
@@ -118,10 +144,17 @@ public class FilmDbStorage implements FilmStorage {
             }
         }
 
+        if (film.getDirectors() != null) {
+            String sqlInsertFilmDirector = "INSERT INTO FILM_DIRECTORS (FILM_ID, DIRECTOR_ID) values (?,?)";
+            for (Director director : film.getDirectors()) {
+                jdbcTemplate.update(sqlInsertFilmDirector, film.getId(), director.getId());
+            }
+        }
+
         return getFilm(film.getId());
     }
 
-    private Film makeFilm(ResultSet filmRows, Map<Long, Set<Genre>> setMap) throws SQLException {
+    private Film makeFilm(ResultSet filmRows, Map<Long, Set<Genre>> setMap, Map<Long, Set<Director>> setMapDirector) throws SQLException {
         Long film_id = filmRows.getLong("film_id");
         return new Film(film_id,
                 filmRows.getString("fname"),
@@ -129,7 +162,8 @@ public class FilmDbStorage implements FilmStorage {
                 filmRows.getDate("releaseDate").toLocalDate(),
                 filmRows.getInt("duration"),
                 new MPA(filmRows.getLong("RATING_MPA_ID"), filmRows.getString("mpa_name")),
-                setMap.getOrDefault(film_id, new HashSet<>()));
+                setMap.getOrDefault(film_id, new HashSet<>()),
+                setMapDirector.getOrDefault(film_id, new HashSet<>()));
     }
 
     private Map<String, Object> toMapFilm(Film film) {
@@ -159,6 +193,23 @@ public class FilmDbStorage implements FilmStorage {
         return genreMap;
     }
 
+    private Map<Long, Set<Director>> makeDirectorMap(SqlRowSet directorRowSet) {
+        Map<Long, Set<Director>> directorMap = new HashMap<>();
+        while (directorRowSet.next()) {
+            Long film_id = directorRowSet.getLong("film_id");
+            Long director_id = directorRowSet.getLong("DIRECTOR_ID");
+            String director_name = directorRowSet.getString("NAME");
+
+            if (directorMap.containsKey(film_id)) {
+                directorMap.get(film_id).add(new Director(director_id, director_name));
+            } else {
+                directorMap.put(film_id, new HashSet<>());
+                directorMap.get(film_id).add(new Director(director_id, director_name));
+            }
+        }
+        return directorMap;
+    }
+
     @Override
     public List<Film> getPopularFilm(Integer count) {
 
@@ -171,10 +222,16 @@ public class FilmDbStorage implements FilmStorage {
         String sql_film = "select fg.FILM_ID,g.GENRE_ID,g.NAME " +
                 "from film_genres fg join GENRES g on g.GENRE_ID = fg.GENRE_ID";
 
+        String sql_director = "select fd.FILM_ID,d. DIRECTOR_ID,d.NAME " +
+                "from film_directors fd join DIRECTORS d on d.DIRECTOR_ID = fd.DIRECTOR_ID";
+
         SqlRowSet genreRows = jdbcTemplate.queryForRowSet(sql_film);
         Map<Long, Set<Genre>> setMap = makeGenreMap(genreRows);
 
-        List<Film> films = jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs, setMap), count);
+        SqlRowSet directorRows = jdbcTemplate.queryForRowSet(sql_director);
+        Map<Long, Set<Director>> setMapDirector = makeDirectorMap(directorRows);
+
+        List<Film> films = jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs, setMap, setMapDirector), count);
         return films;
     }
 
@@ -186,4 +243,81 @@ public class FilmDbStorage implements FilmStorage {
         }
     }
 
+
+    @Override
+    public List<Film> getDirectorFilms(Long directorId, String sortBy) {
+        String sqlGetDirector = "select  d.DIRECTOR_ID, d.NAME " +
+                "from directors as d" +
+                " where d.DIRECTOR_ID = ?";
+
+        SqlRowSet getDirectorRows = jdbcTemplate.queryForRowSet(sqlGetDirector, directorId);
+
+        if (getDirectorRows.next()) {
+            log.info("Найден режиссер с id: {}", getDirectorRows.getString("director_id"));
+        } else {
+            log.info("Режиссер с идентификатором {} не найден.", directorId);
+            throw new DirectorNotFoundException();
+        }
+
+
+        if (sortBy.equals("likes")) {
+            String sql = "select  film_id, f.name as fname, description, releaseDate, duration, " +
+                    "f.RATING_MPA_ID, rm.name as mpa_name " +
+                    "from films as f join rating_mpa as rm on f.RATING_MPA_ID = rm.RATING_MPA_ID " +
+                    "ORDER BY f.LIKES_COUNTER DESC";
+
+            String sql_film = "select fg.FILM_ID,g.GENRE_ID,g.NAME " +
+                    "from film_genres fg join GENRES g on g.GENRE_ID = fg.GENRE_ID";
+
+            String sql_director = "select fd.FILM_ID,d. DIRECTOR_ID,d.NAME " +
+                    "from film_directors fd join DIRECTORS d on d.DIRECTOR_ID = fd.DIRECTOR_ID";
+
+            SqlRowSet genreRows = jdbcTemplate.queryForRowSet(sql_film);
+            Map<Long, Set<Genre>> setMap = makeGenreMap(genreRows);
+
+            SqlRowSet directorRows = jdbcTemplate.queryForRowSet(sql_director);
+            Map<Long, Set<Director>> setMapDirector = makeDirectorMap(directorRows);
+
+            List<Film> films = jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs, setMap, setMapDirector));
+
+            List<Film> directorFilms = new ArrayList<>();
+            for (Film film : films) {
+                for (Director director : film.getDirectors()) {
+                    if (director.getId() == directorId) {
+                        directorFilms.add(film);
+                    }
+                }
+            }
+            return directorFilms;
+        } else {
+            String sql = "select  film_id, f.name as fname, description, releaseDate, duration, " +
+                    "f.RATING_MPA_ID, rm.name as mpa_name " +
+                    "from films as f join rating_mpa as rm on f.RATING_MPA_ID = rm.RATING_MPA_ID " +
+                    "ORDER BY f.RELEASEDATE ASC";
+
+            String sql_film = "select fg.FILM_ID,g.GENRE_ID,g.NAME " +
+                    "from film_genres fg join GENRES g on g.GENRE_ID = fg.GENRE_ID";
+
+            String sql_director = "select fd.FILM_ID,d. DIRECTOR_ID,d.NAME " +
+                    "from film_directors fd join DIRECTORS d on d.DIRECTOR_ID = fd.DIRECTOR_ID";
+
+            SqlRowSet genreRows = jdbcTemplate.queryForRowSet(sql_film);
+            Map<Long, Set<Genre>> setMap = makeGenreMap(genreRows);
+
+            SqlRowSet directorRows = jdbcTemplate.queryForRowSet(sql_director);
+            Map<Long, Set<Director>> setMapDirector = makeDirectorMap(directorRows);
+
+            List<Film> films = jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs, setMap, setMapDirector));
+
+            List<Film> directorFilms = new ArrayList<>();
+            for (Film film : films) {
+                for (Director director : film.getDirectors()) {
+                    if (director.getId() == directorId) {
+                        directorFilms.add(film);
+                    }
+                }
+            }
+            return directorFilms;
+        }
+    }
 }

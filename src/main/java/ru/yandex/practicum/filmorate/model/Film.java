@@ -1,7 +1,6 @@
 package ru.yandex.practicum.filmorate.model;
 
-import lombok.Data;
-import lombok.NonNull;
+import lombok.*;
 import ru.yandex.practicum.filmorate.myAnnotation.myDate;
 
 import javax.validation.constraints.Min;
@@ -28,4 +27,5 @@ public class Film {
     @NonNull
     private final MPA mpa;
     private final Set<Genre> genres;
+    private final Set<Director> directors;
 }
