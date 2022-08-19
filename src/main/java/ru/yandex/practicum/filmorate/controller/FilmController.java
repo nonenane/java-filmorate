@@ -95,4 +95,11 @@ public class FilmController {
         log.info("Выполнен запрос получения популярных фильмов режиссера с id " + directorId);
         return filmService.getDirectorFilms(directorId, sortBy);
     }
+
+    @GetMapping("/common")
+    public List<Film> getSortedByPopularityListOfFilms(@RequestParam Long userId, @RequestParam Long friendId) {
+        log.info("Выполнен запрос получения общих популярных фильмов пользователя с id " + userId
+                + " и его друга с id " + friendId);
+        return filmService.getSortedByPopularityListOfFilms(userId, friendId);
+    }
 }
