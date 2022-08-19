@@ -20,7 +20,7 @@ public class Film {
     @NotBlank
     private final String description;
     @NonNull
-    //@myDate
+    @myDate
     private final LocalDate releaseDate;
     @Min(0)
     private final Integer duration;
