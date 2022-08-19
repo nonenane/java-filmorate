@@ -3,6 +3,7 @@ package ru.yandex.practicum.filmorate.storage.film.impl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Component;
@@ -237,7 +238,7 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public void removeByFilmId(Long filmId) {
-         String sqlString = "delete from FILMS where FILM_ID=?";
+        String sqlString = "delete from FILMS where FILM_ID=?";
         if (jdbcTemplate.update(sqlString, filmId) == 0) {
             throw new FilmNotFoundException();
         }
@@ -319,5 +320,29 @@ public class FilmDbStorage implements FilmStorage {
             }
             return directorFilms;
         }
+    }
+
+    @Override
+    public List<Film> getSortedByPopularityListOfFilms(Long userId, Long friendId) {
+        String sql = "select  film_id, f.name as fname, description, releaseDate, duration, " +
+                "f.RATING_MPA_ID, rm.name as mpa_name " +
+                "from films as f join rating_mpa as rm on f.RATING_MPA_ID = rm.RATING_MPA_ID " +
+                "where FILM_ID in (select " +
+                "FILM_ID from LIKES where USER_ID = ?) and (select FILM_ID from LIKES where USER_ID = ?)" +
+                "ORDER BY f.LIKES_COUNTER DESC";
+
+        String sql_film = "select fg.FILM_ID,g.GENRE_ID,g.NAME " +
+                "from film_genres fg join GENRES g on g.GENRE_ID = fg.GENRE_ID";
+
+        String sql_director = "select fd.FILM_ID,d. DIRECTOR_ID,d.NAME " +
+                "from film_directors fd join DIRECTORS d on d.DIRECTOR_ID = fd.DIRECTOR_ID";
+
+        SqlRowSet genreRows = jdbcTemplate.queryForRowSet(sql_film);
+        Map<Long, Set<Genre>> setMap = makeGenreMap(genreRows);
+
+        SqlRowSet directorRows = jdbcTemplate.queryForRowSet(sql_director);
+        Map<Long, Set<Director>> setMapDirector = makeDirectorMap(directorRows);
+        List<Film> films = jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs, setMap, setMapDirector), userId, friendId);
+        return films;
     }
 }
