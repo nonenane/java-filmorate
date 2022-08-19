@@ -53,4 +53,8 @@ public class FilmService {
     public List<Film> getFilmsWithMostLikes(Integer num) {
         return storage.getPopularFilm(num);
     }
+
+    public List<Film> getDirectorFilms(Long directorId, String sortBy) {
+            return storage.getDirectorFilms(directorId, sortBy);
+    }
 }
