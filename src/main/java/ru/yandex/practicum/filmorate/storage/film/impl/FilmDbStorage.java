@@ -347,21 +347,13 @@ public class FilmDbStorage implements FilmStorage {
         String sqlGetLikeByUserFilms = "select FILM_ID from LIKES where USER_ID = ?";
         List<Integer> userFilms = jdbcTemplate.query(sqlGetLikeByUserFilms, (rs, rowNum) -> {
             Integer id = rs.getInt("FILM_ID");
-            if (id != null) {
-                return id;
-            } else {
-                return null;
-            }
+            return id;
         }, userId);
 
         String sqlGetLikeByFriendFilms = "select FILM_ID from LIKES where USER_ID = ?";
         List<Integer> friendFilms = jdbcTemplate.query(sqlGetLikeByFriendFilms, (rs, rowNum) -> {
             Integer id = rs.getInt("FILM_ID");
-            if (id != null) {
-                return id;
-            } else {
-                return null;
-            }
+            return id;
         }, friendId);
 
         List<Integer> commonFilmsId = new ArrayList<>();
