@@ -324,10 +324,11 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public List<Film> getSortedByPopularityListOfFilms(Long userId, Long friendId) {
-
         String sql = "select  film_id, f.name as fname, description, releaseDate, duration, " +
                 "f.RATING_MPA_ID, rm.name as mpa_name " +
                 "from films as f join rating_mpa as rm on f.RATING_MPA_ID = rm.RATING_MPA_ID " +
+                "where FILM_ID in (select " +
+                "FILM_ID from LIKES where USER_ID = ?) and (select FILM_ID from LIKES where USER_ID = ?)" +
                 "ORDER BY f.LIKES_COUNTER DESC";
 
         String sql_film = "select fg.FILM_ID,g.GENRE_ID,g.NAME " +
@@ -341,47 +342,7 @@ public class FilmDbStorage implements FilmStorage {
 
         SqlRowSet directorRows = jdbcTemplate.queryForRowSet(sql_director);
         Map<Long, Set<Director>> setMapDirector = makeDirectorMap(directorRows);
-
-        List<Film> films = jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs, setMap, setMapDirector));
-
-        String sqlGetLikeByUserFilms = "select FILM_ID from LIKES where USER_ID = ?";
-        List<Integer> userFilms = jdbcTemplate.query(sqlGetLikeByUserFilms, (rs, rowNum) -> {
-            Integer id = rs.getInt("FILM_ID");
-            return id;
-        }, userId);
-
-        String sqlGetLikeByFriendFilms = "select FILM_ID from LIKES where USER_ID = ?";
-        List<Integer> friendFilms = jdbcTemplate.query(sqlGetLikeByFriendFilms, (rs, rowNum) -> {
-            Integer id = rs.getInt("FILM_ID");
-            return id;
-        }, friendId);
-
-        List<Integer> commonFilmsId = new ArrayList<>();
-
-        for (Integer i : userFilms) {
-            for (Integer k : friendFilms) {
-                if (i == k) {
-                    commonFilmsId.add(i);
-                }
-            }
-        }
-
-        List<Film> commonFilms = new ArrayList<>();
-
-        for (Integer i : commonFilmsId) {
-            Film film = getFilm((i.longValue())).orElseThrow(FilmNotFoundException::new);
-            commonFilms.add(film);
-        }
-
-        List<Film> sortedCommonFilmList = new ArrayList<>();
-
-        for (Film film : films) {
-            for (Film commonFilm : commonFilms) {
-                if (film.getId() == commonFilm.getId()) {
-                    sortedCommonFilmList.add(film);
-                }
-            }
-        }
-        return sortedCommonFilmList;
+        List<Film> films = jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs, setMap, setMapDirector), userId, friendId);
+        return films;
     }
 }
