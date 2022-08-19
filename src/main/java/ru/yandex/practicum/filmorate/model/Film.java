@@ -1,7 +1,6 @@
 package ru.yandex.practicum.filmorate.model;
 
-import lombok.Data;
-import lombok.NonNull;
+import lombok.*;
 import ru.yandex.practicum.filmorate.myAnnotation.myDate;
 
 import javax.validation.constraints.Min;
@@ -21,11 +20,12 @@ public class Film {
     @NotBlank
     private final String description;
     @NonNull
-    @myDate
+    //@myDate
     private final LocalDate releaseDate;
     @Min(0)
     private final Integer duration;
     @NonNull
     private final MPA mpa;
     private final Set<Genre> genres;
+    private final Set<Director> directors;
 }
