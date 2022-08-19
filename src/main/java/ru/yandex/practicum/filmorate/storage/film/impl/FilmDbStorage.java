@@ -320,4 +320,9 @@ public class FilmDbStorage implements FilmStorage {
             return directorFilms;
         }
     }
+
+    @Override
+    public List<Film> getRecommendation(Long userId) {
+        return null;
+    }
 }
