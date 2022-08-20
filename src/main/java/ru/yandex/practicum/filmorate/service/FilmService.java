@@ -61,4 +61,7 @@ public class FilmService {
     public List<Film> getSortedByPopularityListOfFilms(Long userId, Long friendId) {
         return storage.getSortedByPopularityListOfFilms(userId, friendId);
     }
+    public List<Film> getFilmsBySearch(String searchQuery, String searchBy) {
+        return storage.getFilmsBySearch(searchQuery,searchBy);
+    }
 }

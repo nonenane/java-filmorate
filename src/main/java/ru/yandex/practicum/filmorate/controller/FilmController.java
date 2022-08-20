@@ -102,4 +102,10 @@ public class FilmController {
                 + " и его друга с id " + friendId);
         return filmService.getSortedByPopularityListOfFilms(userId, friendId);
     }
+
+    @GetMapping("/search")
+    public List<Film> getFilmsBySearch(@RequestParam String query,@RequestParam String by) {
+        log.info("Выполнен поиск");
+        return filmService.getFilmsBySearch(query,by);
+    }
 }
