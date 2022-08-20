@@ -89,6 +89,33 @@ public class FilmController {
         log.info("Выполнен запрос получения " + count + " популярных фильмов.");
         return filmService.getFilmsWithMostLikes(count);
     }
+
+
+    @GetMapping("/director/{directorId}")
+    public List<Film> getDirectorFilms(@RequestParam String sortBy, @PathVariable Long directorId) {
+        log.info("Выполнен запрос получения популярных фильмов режиссера с id " + directorId);
+        return filmService.getDirectorFilms(directorId, sortBy);
+    }
+
+    @GetMapping("/common")
+    public List<Film> getSortedByPopularityListOfFilms(@RequestParam Long userId, @RequestParam Long friendId) {
+        log.info("Выполнен запрос получения общих популярных фильмов пользователя с id " + userId
+                + " и его друга с id " + friendId);
+        return filmService.getSortedByPopularityListOfFilms(userId, friendId);
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
     @GetMapping("/search")
     public List<Film> getFilmsBySearch(@RequestParam String query,@RequestParam String by) {
         log.info("Выполнен поиск");
