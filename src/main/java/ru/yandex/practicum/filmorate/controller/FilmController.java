@@ -90,7 +90,6 @@ public class FilmController {
         return filmService.getFilmsWithMostLikes(count);
     }
 
-
     @GetMapping("/director/{directorId}")
     public List<Film> getDirectorFilms(@RequestParam String sortBy, @PathVariable Long directorId) {
         log.info("Выполнен запрос получения популярных фильмов режиссера с id " + directorId);
@@ -103,18 +102,6 @@ public class FilmController {
                 + " и его друга с id " + friendId);
         return filmService.getSortedByPopularityListOfFilms(userId, friendId);
     }
-
-
-
-
-
-
-
-
-
-
-
-
 
     @GetMapping("/search")
     public List<Film> getFilmsBySearch(@RequestParam String query,@RequestParam String by) {
