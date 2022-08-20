@@ -3,6 +3,7 @@ package ru.yandex.practicum.filmorate.service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.model.Director;
+import ru.yandex.practicum.filmorate.storage.director.DirectorStorage;
 import ru.yandex.practicum.filmorate.storage.director.impl.DirectorDBStorage;
 
 import java.util.List;
@@ -12,7 +13,7 @@ import java.util.Optional;
 @Service
 public class DirectorService {
 
-    private final DirectorDBStorage directorStorage;
+    private final DirectorStorage directorStorage;
 
     public DirectorService(DirectorDBStorage directorStorage) {
         this.directorStorage = directorStorage;
