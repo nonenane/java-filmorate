@@ -64,4 +64,8 @@ public class FilmService {
     public List<Film> getFilmsBySearch(String searchQuery, String searchBy) {
         return storage.getFilmsBySearch(searchQuery,searchBy);
     }
+
+    public List<Film> getPopularFilmsByGenreAndYear(Integer count, Long genreId, Integer releaseYear) {
+        return storage.getPopularFilmsByGenreAndYear(count, genreId, releaseYear);
+    }
 }
