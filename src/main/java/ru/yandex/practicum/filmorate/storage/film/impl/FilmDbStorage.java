@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.relational.core.sql.In;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Component;
@@ -239,7 +240,7 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public void removeByFilmId(Long filmId) {
-         String sqlString = "delete from FILMS where FILM_ID=?";
+        String sqlString = "delete from FILMS where FILM_ID=?";
         if (jdbcTemplate.update(sqlString, filmId) == 0) {
             throw new FilmNotFoundException();
         }
@@ -322,6 +323,8 @@ public class FilmDbStorage implements FilmStorage {
             return directorFilms;
         }
     }
+
+
 
     @Override
     public Set<Film> getRecommendation(Long userId) {
@@ -444,5 +447,129 @@ public class FilmDbStorage implements FilmStorage {
                     return recommendationPriority.get(a.getId()) > 0.0;})
                 .collect(Collectors.toList());
     }
-}
 
+
+
+
+
+    @Override
+    public List<Film> getSortedByPopularityListOfFilms(Long userId, Long friendId) {
+        String sql = "select  film_id, f.name as fname, description, releaseDate, duration, " +
+                "f.RATING_MPA_ID, rm.name as mpa_name " +
+                "from films as f join rating_mpa as rm on f.RATING_MPA_ID = rm.RATING_MPA_ID " +
+                "where FILM_ID in (select " +
+                "FILM_ID from LIKES where USER_ID = ?) and (select FILM_ID from LIKES where USER_ID = ?)" +
+                "ORDER BY f.LIKES_COUNTER DESC";
+
+        String sql_film = "select fg.FILM_ID,g.GENRE_ID,g.NAME " +
+                "from film_genres fg join GENRES g on g.GENRE_ID = fg.GENRE_ID";
+
+        String sql_director = "select fd.FILM_ID,d. DIRECTOR_ID,d.NAME " +
+                "from film_directors fd join DIRECTORS d on d.DIRECTOR_ID = fd.DIRECTOR_ID";
+
+        SqlRowSet genreRows = jdbcTemplate.queryForRowSet(sql_film);
+        Map<Long, Set<Genre>> setMap = makeGenreMap(genreRows);
+
+        SqlRowSet directorRows = jdbcTemplate.queryForRowSet(sql_director);
+        Map<Long, Set<Director>> setMapDirector = makeDirectorMap(directorRows);
+        List<Film> films = jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs, setMap, setMapDirector), userId, friendId);
+        return films;
+    }
+    @Override
+    public List<Film> getFilmsBySearch(String searchQuery, String searchBy) {
+        searchQuery = searchQuery.toLowerCase();
+
+        String[] subs = searchBy.split(",");
+        Set<String> fieldsQuery = new HashSet<>();
+        if (subs.length == 0) {
+            fieldsQuery.add("title");
+        } else {
+            for (String s : subs) {
+                fieldsQuery.add(s.toLowerCase());
+            }
+        }
+
+        String sqlString = "" +
+                "select * " +
+                " " +
+                "from (select  " +
+                "films.FILM_ID,  " +
+                "films.NAME, " +
+                "films.DESCRIPTION, " +
+                "films.RELEASEDATE, " +
+                "films.DURATION, " +
+                "rating_mpa.RATING_MPA_ID as RATING_MPA_ID," +
+                "rating_mpa.NAME as RATING_MPA_NAME, " +
+                "count (likes.USER_ID)  as filmsLikes " +
+                "from FILMS as films " +
+                "left join RATING_MPA as rating_mpa on films.RATING_MPA_ID = RATING_MPA.RATING_MPA_ID " +
+                "left join LIKES as likes on films.FILM_ID = likes.FILM_ID " +
+                "where LOWER (films.NAME) like '%" + searchQuery + "%'" +
+                "and 't1' = 'title' " +
+                "group by likes.user_id " +
+                " " +
+                "UNION " +
+                "select  " +
+                "films.FILM_ID,  " +
+                "films.NAME, " +
+                "films.DESCRIPTION, " +
+                "films.RELEASEDATE, " +
+                "films.DURATION, " +
+                "rating_mpa.RATING_MPA_ID, " +
+                "rating_mpa.NAME ," +
+                "count (likes.USER_ID) " +
+                "from DIRECTORS as director " +
+                "left join FILM_DIRECTORS as film_directors on director.DIRECTOR_ID=film_directors.DIRECTOR_ID " +
+                "left join FILMS as films on FILM_DIRECTORS.FILM_ID = FILMS.FILM_ID " +
+                "left join RATING_MPA as rating_mpa on films.RATING_MPA_ID = RATING_MPA.RATING_MPA_ID " +
+                "left join LIKES as LIKES on films.FILM_ID = likes.FILM_ID " +
+                "where LOWER(director.NAME) like '%" + searchQuery + "%'" +
+                "and 't2' = 'director' " +
+                "group by likes.user_id, " +
+                "films.film_id )as t2 " +
+                "order by filmsLikes desc";
+
+
+        if (fieldsQuery.contains("title")) {
+            sqlString = sqlString.replace("t1", "title");
+        }
+        if (fieldsQuery.contains("director")) {
+            sqlString = sqlString.replace("t2", "director");
+        }
+        SqlRowSet rows = jdbcTemplate.queryForRowSet(sqlString);
+
+
+        String sql_film = "select fg.FILM_ID,g.GENRE_ID,g.NAME " +
+                "from film_genres fg join GENRES g on g.GENRE_ID = fg.GENRE_ID " +
+                "WHERE fg.FILM_ID = ?";
+
+        String sql_director = "select fd.FILM_ID,d. DIRECTOR_ID,d.NAME " +
+                "from film_directors fd join DIRECTORS d on d.DIRECTOR_ID = fd.DIRECTOR_ID " +
+                "where fd.film_id=?";
+
+        List<Film> films = new ArrayList<>();
+
+
+        while (rows.next()) {
+            SqlRowSet genreRows = jdbcTemplate.queryForRowSet(sql_film, rows.getLong("film_id"));
+            Map<Long, Set<Genre>> setMap = makeGenreMap(genreRows);
+
+            SqlRowSet directorRows = jdbcTemplate.queryForRowSet(sql_director, rows.getLong("film_id"));
+            Map<Long, Set<Director>> setMapDirector = makeDirectorMap(directorRows);
+
+            Film film = new Film(
+                    rows.getLong("film_id"),
+                    rows.getString("name"),
+                    rows.getString("description"),
+                    rows.getDate("releaseDate").toLocalDate(),
+                    rows.getInt("duration"),
+                    new MPA(rows.getLong("RATING_MPA_ID"), rows.getString("RATING_MPA_NAME")),
+                    setMap.getOrDefault(rows.getLong("film_id"), new HashSet<>()),
+                    setMapDirector.getOrDefault(rows.getLong("film_id"), new HashSet<>())
+            );
+            films.add(film);
+        }
+
+       return films;
+    }
+}

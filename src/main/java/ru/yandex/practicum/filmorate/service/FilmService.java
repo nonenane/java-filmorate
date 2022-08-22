@@ -57,4 +57,11 @@ public class FilmService {
     public List<Film> getDirectorFilms(Long directorId, String sortBy) {
             return storage.getDirectorFilms(directorId, sortBy);
     }
+
+    public List<Film> getSortedByPopularityListOfFilms(Long userId, Long friendId) {
+        return storage.getSortedByPopularityListOfFilms(userId, friendId);
+    }
+    public List<Film> getFilmsBySearch(String searchQuery, String searchBy) {
+        return storage.getFilmsBySearch(searchQuery,searchBy);
+    }
 }

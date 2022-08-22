@@ -5,12 +5,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.ValidationException;
+import ru.yandex.practicum.filmorate.model.Feed;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.service.FeedService;
 import ru.yandex.practicum.filmorate.service.UserService;
-import ru.yandex.practicum.filmorate.util.EmailValidator;
 
 import javax.validation.Valid;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -22,12 +24,13 @@ import java.util.Set;
 public class UserController {
 
     protected UserService userService;
-    private EmailValidator emailValidator = new EmailValidator();
-    private Long idCounter = 1L;
+    protected FeedService feedService;
+
 
     @Autowired
-    public UserController(UserService userService) {
+    public UserController(UserService userService, FeedService feedService) {
         this.userService = userService;
+        this.feedService = feedService;
     }
 
     @GetMapping()
@@ -69,9 +72,10 @@ public class UserController {
 
         return optionalUser;
     }
+
     @DeleteMapping(value = "/{id}")
-    public void removeByUserId(@Valid @PathVariable Long id ) {
-        log.info("Выполнен запрос removeByUserId для ID:" + id );
+    public void removeByUserId(@Valid @PathVariable Long id) {
+        log.info("Выполнен запрос removeByUserId для ID:" + id);
         userService.removeByUserId(id);
     }
 
@@ -87,6 +91,7 @@ public class UserController {
         optionalUser.orElseThrow(() -> new UserNotFoundException());
 
         userService.addFriend(id, friendId);
+        feedService.addFeed(id,friendId,"ADD","FRIEND");
     }
 
     @DeleteMapping("/{id}/friends/{friendId}")
@@ -101,6 +106,7 @@ public class UserController {
         optionalUser.orElseThrow(() -> new UserNotFoundException());
 
         userService.removeFriend(id, friendId);
+        feedService.addFeed(id,friendId,"REMOVE","FRIEND");
     }
 
     @GetMapping("/{id}/friends")
@@ -118,15 +124,27 @@ public class UserController {
 
         log.info("Выполнен запрос getCommonFriends по ID:" + id + " для ID:" + otherId);
 
-        if (userService.getUser(id) == null || userService.getUser(otherId) == null)
+        if (userService.getUser(id).isEmpty() || userService.getUser(otherId).isEmpty())
             throw new UserNotFoundException();
 
 
         return userService.getCommonFriends(id, otherId);
     }
 
+    @GetMapping("/{id}/feed")
+    public List<Feed> getFeeds(@PathVariable Long id) {
+
+        log.info("Выполнен запрос getFeeds по ID:" + id);
+
+        if (userService.getUser(id).isEmpty())
+            throw new UserNotFoundException();
+
+        return  feedService.getFeeds(id);
+    }
+
     @GetMapping("/{id}/recommendations")
     public Set<Film> getRecommendations(@PathVariable Long id) {
+        log.info("Выполнен запрос getRecommendations по ID:" + id);
         return userService.getRecommendations(id);
     }
 }
