@@ -18,9 +18,10 @@ public class UserService {
     protected FriendsStorage friendsStorage;
 
     protected FilmStorage filmStorage;
-    public UserService(UserStorage userStorage,FriendsStorage friendsStorage) {
+    public UserService(UserStorage userStorage, FriendsStorage friendsStorage, FilmStorage filmStorage) {
         this.userStorage = userStorage;
         this.friendsStorage = friendsStorage;
+        this.filmStorage = filmStorage;
     }
 
     public List<User> getAllUsers() {
@@ -72,7 +73,7 @@ public class UserService {
         return friendsStorage.getCommonFriends(userId,otherId);
     }
 
-    public List<Film> getRecommendations( Long id) {
+    public Set<Film> getRecommendations( Long id) {
         return filmStorage.getRecommendation(id);
     }
 }

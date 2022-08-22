@@ -2,6 +2,7 @@ package ru.yandex.practicum.filmorate.storage.film.impl;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Primary;
+import org.springframework.data.relational.core.sql.In;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
@@ -17,6 +18,7 @@ import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -322,7 +324,125 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     @Override
-    public List<Film> getRecommendation(Long userId) {
-        return null;
+    public Set<Film> getRecommendation(Long userId) {
+        Map<Long, Map<Long, Integer>> data = new HashMap<>(); //userId, filmId, Integer -- пока 0 и 1, потом будут лайки от 0 до 10
+        List<Long> usersId = jdbcTemplate.query(
+                "select USER_ID from USERS",
+                (rs, rn) -> rs.getLong("USER_ID")
+        );
+        List<Long> filmsId = jdbcTemplate.query(
+                "select FILM_ID from FILMS",
+                (rs, rn) -> rs.getLong("FILM_ID")
+        );
+        for (Long id : usersId) {
+            List<Long> likedFilmsId = jdbcTemplate.query(
+                    "select FILM_ID from LIKES where USER_ID = ?",
+                    (rs, rn) -> rs.getLong("FILM_ID"),
+                    id
+            );
+            Map<Long, Integer> filmMap = new HashMap<>();
+            for (Long filmId : likedFilmsId) {
+                filmMap.put(filmId,  1);
+            }
+            data.put(id, filmMap);
+        }
+        Map<Long, Map<Long, Integer>> diff = new HashMap<>(); //filmId, filmId, diff
+        Map<Long, Map<Long, Integer>> freq = new HashMap<>();
+        Map<Long, Map<Long, Double>> similarityScore = new HashMap<>();
+        for (Map<Long, Integer> users : data.values()) {
+            for (Long user : users.keySet()) {
+                if (!diff.containsKey(user)) {
+                    diff.put(user, new HashMap<>());
+                    freq.put(user, new HashMap<>());
+                }
+                for (Long user2 : users.keySet()) {
+                    int oldCount = 0;
+                    int oldDiff = 0;
+                    if (freq.get(user).containsKey(user2)) {
+                        oldCount = freq.get(user).get(user2);
+                    }
+                    if (diff.get(user).containsKey(user2)) {
+                        oldDiff = diff.get(user).get(user2);
+                    }
+                    int observedDiff = users.get(user) - users.get(user2);
+                    freq.get(user).put(user2, oldCount + 1);
+                    diff.get(user).put(user2, oldDiff + observedDiff);
+                }
+            }
+            for (Long i : diff.keySet()) {
+                similarityScore.put(i, new HashMap<>());
+                for (Long j : diff.get(i).keySet()) {
+                    double diffValue = diff.get(i).get(j);
+                    int count = freq.get(i).get(j);
+                    similarityScore.get(i).put(j, diffValue / count);
+                }
+            }
+        }
+        Map<Long, Double> uPred = new HashMap<>();
+        Map<Long, Integer> uFreq = new HashMap<>();
+        for (Long j : similarityScore.keySet()) {
+            uFreq.put(j, 0);
+            uPred.put(j, 0.0);
+        }
+        Map<Long, Integer> userFilm = data.get(userId);
+        for (Long j : userFilm.keySet()) {
+            for (Long k : similarityScore.keySet()) {
+                try {
+                    double predictedValue = similarityScore.get(k).get(j) + userFilm.get(j).doubleValue();
+                    double finalValue = predictedValue * freq.get(k).get(j);
+                    uPred.put(k, uPred.get(k) + finalValue);
+                    uFreq.put(k, uFreq.get(k) + freq.get(k).get(j));
+                } catch (NullPointerException ignored) {
+                }
+            }
+        }
+        Map<Long, Double> clean = new HashMap<>();
+        for (Long j : uPred.keySet()) {
+            if (uFreq.get(j) > 0) {
+                clean.put(j, uPred.get(j) / uFreq.get(j));
+            }
+        }
+        for (Long j : filmsId) {
+            if (userFilm.containsKey(j)) {
+                clean.put(j, userFilm.get(j).doubleValue());
+            } else if (!clean.containsKey(j)) {
+                clean.put(j, -1.0);
+            }
+        }
+
+        TreeSet<Film> output = new TreeSet<>(Comparator.comparingDouble(x -> clean.get(x.getId())));
+        output.addAll(getFilmsWithoutLiked(userId, clean));
+        return output;
+    }
+    private List<Film> getFilmsWithoutLiked(long userId, Map<Long, Double> recommendationPriority) {
+        String sql = "select  film_id, f.name as fname, description, releaseDate, duration, " +
+                "f.RATING_MPA_ID, rm.name as mpa_name " +
+                "from films as f join rating_mpa as rm on f.RATING_MPA_ID = rm.RATING_MPA_ID " +
+                "where FILM_ID not in (" +
+                "SELECT FILM_ID FROM LIKES where USER_ID = ?" +
+                ")";
+
+        String sql_film = "select fg.FILM_ID,g.GENRE_ID,g.NAME " +
+                "from film_genres fg join GENRES g on g.GENRE_ID = fg.GENRE_ID";
+
+        String sql_director = "select fd.FILM_ID,d. DIRECTOR_ID,d.NAME " +
+                "from film_directors fd join DIRECTORS d on d.DIRECTOR_ID = fd.DIRECTOR_ID";
+
+        SqlRowSet genreRows = jdbcTemplate.queryForRowSet(sql_film);
+        Map<Long, Set<Genre>> setMap = makeGenreMap(genreRows);
+
+        SqlRowSet directorRows = jdbcTemplate.queryForRowSet(sql_director);
+        Map<Long, Set<Director>> setMapDirector = makeDirectorMap(directorRows);
+
+        List<Film> films = jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs, setMap, setMapDirector), userId);
+        System.out.println(films);
+        return films.stream()
+                .filter((a) -> {
+                    if (recommendationPriority.get(a.getId()) == null) {
+                        return false;
+                    }
+                    return recommendationPriority.get(a.getId()) > 0.0;})
+                .collect(Collectors.toList());
     }
 }
+

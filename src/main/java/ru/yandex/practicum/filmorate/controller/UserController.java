@@ -13,6 +13,7 @@ import ru.yandex.practicum.filmorate.util.EmailValidator;
 import javax.validation.Valid;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 
 @Slf4j
@@ -125,7 +126,7 @@ public class UserController {
     }
 
     @GetMapping("/{id}/recommendations")
-    public List<Film> getRecommendations(@PathVariable Long id) {
+    public Set<Film> getRecommendations(@PathVariable Long id) {
         return userService.getRecommendations(id);
     }
 }
