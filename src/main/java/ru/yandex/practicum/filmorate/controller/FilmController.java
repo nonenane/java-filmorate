@@ -87,19 +87,25 @@ public class FilmController {
         feedService.addFeed(userId, id, "REMOVE", "LIKE");
     }
 
-    @GetMapping("/popular")
+    /*@GetMapping("/popular")
     public List<Film> getFilmsWithMostLikes(@RequestParam(defaultValue = "10") int count) {
         log.info("Выполнен запрос получения " + count + " популярных фильмов.");
         return filmService.getFilmsWithMostLikes(count);
-    }
+    }*/
 
     @GetMapping("/popular")
     public List<Film> getPopularFilmsByGenreAndYear(@RequestParam(defaultValue = "10") int count,
-                                            @RequestParam Long genreId,
-                                            @RequestParam int releaseYear) {
-        log.info("Выполнен запрос получения " + count + " популярных фильмов в жанре ID " + genreId
-                + " с годом релиза " + releaseYear);
-        return filmService.getPopularFilmsByGenreAndYear(count, genreId, releaseYear);
+                                                    @RequestParam(required = false) Long genreId,
+                                                    @RequestParam(name = "year",required = false) Integer releaseYear) {
+
+        if (genreId == null && releaseYear == null) {
+            log.info("Выполнен запрос получения " + count + " популярных фильмов.");
+            return filmService.getFilmsWithMostLikes(count);
+        } else {
+            log.info("Выполнен запрос получения " + count + " популярных фильмов в жанре ID " + genreId
+                    + " с годом релиза " + releaseYear);
+            return filmService.getPopularFilmsByGenreAndYear(count, genreId, releaseYear);
+        }
     }
 
     @GetMapping("/director/{directorId}")
