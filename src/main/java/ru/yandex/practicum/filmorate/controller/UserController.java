@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.Feed;
+import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.FeedService;
 import ru.yandex.practicum.filmorate.service.UserService;
@@ -14,6 +15,7 @@ import javax.validation.Valid;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 
 @Slf4j
@@ -138,5 +140,11 @@ public class UserController {
             throw new UserNotFoundException();
 
         return  feedService.getFeeds(id);
+    }
+
+    @GetMapping("/{id}/recommendations")
+    public Set<Film> getRecommendations(@PathVariable Long id) {
+        log.info("Выполнен запрос getRecommendations по ID:" + id);
+        return userService.getRecommendations(id);
     }
 }
