@@ -548,14 +548,11 @@ public class FilmDbStorage implements FilmStorage {
                 "films.DURATION, " +
                 "rating_mpa.RATING_MPA_ID as RATING_MPA_ID," +
                 "rating_mpa.NAME as RATING_MPA_NAME, " +
-                "count (likes.USER_ID)  as filmsLikes " +
+                "films.LIKES_COUNTER as filmsLikes," +
                 "from FILMS as films " +
                 "left join RATING_MPA as rating_mpa on films.RATING_MPA_ID = RATING_MPA.RATING_MPA_ID " +
-                "left join LIKES as likes on films.FILM_ID = likes.FILM_ID " +
                 "where LOWER (films.NAME) like '%" + searchQuery + "%'" +
                 "and 't1' = 'title' " +
-                "group by likes.user_id " +
-                " " +
                 "UNION " +
                 "select  " +
                 "films.FILM_ID,  " +
@@ -565,15 +562,14 @@ public class FilmDbStorage implements FilmStorage {
                 "films.DURATION, " +
                 "rating_mpa.RATING_MPA_ID, " +
                 "rating_mpa.NAME ," +
-                "count (likes.USER_ID) " +
+                "films.LIKES_COUNTER as filmsLikes," +
                 "from DIRECTORS as director " +
                 "left join FILM_DIRECTORS as film_directors on director.DIRECTOR_ID=film_directors.DIRECTOR_ID " +
                 "left join FILMS as films on FILM_DIRECTORS.FILM_ID = FILMS.FILM_ID " +
                 "left join RATING_MPA as rating_mpa on films.RATING_MPA_ID = RATING_MPA.RATING_MPA_ID " +
-                "left join LIKES as LIKES on films.FILM_ID = likes.FILM_ID " +
                 "where LOWER(director.NAME) like '%" + searchQuery + "%'" +
                 "and 't2' = 'director' " +
-                "group by likes.user_id, " +
+                "group by "+
                 "films.film_id )as t2 " +
                 "order by filmsLikes desc";
 
