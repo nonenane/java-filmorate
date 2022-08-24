@@ -29,12 +29,8 @@ public class ReviewController {
 
     @GetMapping
     public List<Review> getAllReview(@RequestParam(name = "filmId", required = false) Long filmId, @RequestParam(defaultValue = "10") int count) {
-
-        if (filmId == null) {
-            return reviewService.getAllReviews(count);
-        } else {
-            return reviewService.getAllReviews(filmId, count);
-        }
+        log.info("Выполнен запрос Получения отзывов по фильму =" + filmId + " в кол-ве" + count);
+        return reviewService.getAllReviews(filmId, count);
     }
 
     @PostMapping

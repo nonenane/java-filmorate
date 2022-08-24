@@ -5,7 +5,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exceptions.DirectorNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.FilmNotFoundException;
 import ru.yandex.practicum.filmorate.model.Director;
@@ -20,7 +20,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
-@Component
+@Repository
 @Primary
 public class FilmDbStorage implements FilmStorage {
 
@@ -78,7 +78,6 @@ public class FilmDbStorage implements FilmStorage {
         SqlRowSet filmRows = jdbcTemplate.queryForRowSet(sql, id);
 
         if (filmRows.next()) {
-            log.info("Найден фильм: {} {}", filmRows.getString("film_id"), filmRows.getString("NAME"));
             Film film = new Film(filmRows.getLong("film_id"),
                     filmRows.getString("NAME"),
                     filmRows.getString("description"),
@@ -90,7 +89,6 @@ public class FilmDbStorage implements FilmStorage {
             );
             return Optional.of(film);
         } else {
-            log.info("Фильм с идентификатором {} не найден.", id);
             return Optional.empty();
         }
     }
@@ -168,13 +166,12 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     private Map<String, Object> toMapFilm(Film film) {
-        Map<String, Object> values = new HashMap<>();
-        values.put("name", film.getName());
-        values.put("description", film.getDescription());
-        values.put("releaseDate", film.getReleaseDate());
-        values.put("duration", film.getDuration());
-        values.put("RATING_MPA_ID", film.getMpa().getId());
-        return values;
+        return Map.of(
+                "name", film.getName(),
+                "description", film.getDescription(),
+                "releaseDate", film.getReleaseDate(),
+                "duration", film.getDuration(),
+                "RATING_MPA_ID", film.getMpa().getId());
     }
 
     private Map<Long, Set<Genre>> makeGenreMap(SqlRowSet genresRowSet) {
@@ -270,7 +267,7 @@ public class FilmDbStorage implements FilmStorage {
                     "ORDER BY f.LIKES_COUNTER DESC " +
                     "LIMIT ?";
 
-            return jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs, setMap, setMapDirector),releaseYear,  count);
+            return jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs, setMap, setMapDirector), releaseYear, count);
         } else {
             String sql = "select  f.film_id, f.name as fname, description, releaseDate, duration, " +
                     "f.RATING_MPA_ID, rm.name as mpa_name " +
@@ -282,8 +279,6 @@ public class FilmDbStorage implements FilmStorage {
 
             return jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs, setMap, setMapDirector), genreId, count);
         }
-        //List<Film> films = jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs, setMap, setMapDirector), count);
-        //return films;
     }
 
 
@@ -304,10 +299,7 @@ public class FilmDbStorage implements FilmStorage {
 
         SqlRowSet getDirectorRows = jdbcTemplate.queryForRowSet(sqlGetDirector, directorId);
 
-        if (getDirectorRows.next()) {
-            log.info("Найден режиссер с id: {}", getDirectorRows.getString("director_id"));
-        } else {
-            log.info("Режиссер с идентификатором {} не найден.", directorId);
+        if (!getDirectorRows.next()) {
             throw new DirectorNotFoundException();
         }
 
@@ -335,7 +327,7 @@ public class FilmDbStorage implements FilmStorage {
             List<Film> directorFilms = new ArrayList<>();
             for (Film film : films) {
                 for (Director director : film.getDirectors()) {
-                    if (director.getId() == directorId) {
+                    if (director.getId().equals(directorId)) {
                         directorFilms.add(film);
                     }
                 }
@@ -364,7 +356,7 @@ public class FilmDbStorage implements FilmStorage {
             List<Film> directorFilms = new ArrayList<>();
             for (Film film : films) {
                 for (Director director : film.getDirectors()) {
-                    if (director.getId() == directorId) {
+                    if (director.getId().equals(directorId)) {
                         directorFilms.add(film);
                     }
                 }
@@ -376,7 +368,7 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public Set<Film> getRecommendation(Long userId) {
-        Map<Long, Map<Long, Integer>> data = new HashMap<>(); //userId, filmId, Integer -- пока 0 и 1, потом будут лайки от 0 до 10
+        Map<Long, Map<Long, Integer>> data = new HashMap<>();
         List<Long> usersId = jdbcTemplate.query(
                 "select USER_ID from USERS",
                 (rs, rn) -> rs.getLong("USER_ID")
@@ -397,7 +389,7 @@ public class FilmDbStorage implements FilmStorage {
             }
             data.put(id, filmMap);
         }
-        Map<Long, Map<Long, Integer>> diff = new HashMap<>(); //filmId, filmId, diff
+        Map<Long, Map<Long, Integer>> diff = new HashMap<>();
         Map<Long, Map<Long, Integer>> freq = new HashMap<>();
         Map<Long, Map<Long, Double>> similarityScore = new HashMap<>();
         for (Map<Long, Integer> users : data.values()) {
@@ -569,7 +561,7 @@ public class FilmDbStorage implements FilmStorage {
                 "left join RATING_MPA as rating_mpa on films.RATING_MPA_ID = RATING_MPA.RATING_MPA_ID " +
                 "where LOWER(director.NAME) like '%" + searchQuery + "%'" +
                 "and 't2' = 'director' " +
-                "group by "+
+                "group by " +
                 "films.film_id )as t2 " +
                 "order by filmsLikes desc";
 

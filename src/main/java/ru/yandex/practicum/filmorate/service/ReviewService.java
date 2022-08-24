@@ -50,15 +50,14 @@ public class ReviewService {
         return reviewStorage.getReview(id);
     }
 
-    public List<Review> getAllReviews(int count) {
-        return reviewStorage.getAllReviews(count);
-    }
-
     public List<Review> getAllReviews(Long filmId, int count) {
 
-        filmStorage.getFilm(filmId).orElseThrow(() -> new FilmNotFoundException());
-
-        return reviewStorage.getAllReviews(filmId, count);
+        if (filmId == null) {
+            return reviewStorage.getAllReviews(count);
+        } else {
+            filmStorage.getFilm(filmId).orElseThrow(() -> new FilmNotFoundException());
+            return reviewStorage.getAllReviews(filmId, count);
+        }
     }
 
     public void addLike(Long reviewID, Long userId, boolean isPositive) {

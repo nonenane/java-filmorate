@@ -5,22 +5,20 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
-import org.springframework.stereotype.Component;
-import ru.yandex.practicum.filmorate.exceptions.FilmNotFoundException;
+import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exceptions.ReviewNotFoundException;
 import ru.yandex.practicum.filmorate.model.Review;
 import ru.yandex.practicum.filmorate.storage.review.ReviewStorage;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 
 @Slf4j
-@Component
+@Repository
 @Primary
 public class ReviewDbStorage implements ReviewStorage {
 
@@ -72,17 +70,15 @@ public class ReviewDbStorage implements ReviewStorage {
         SqlRowSet reviewRow = jdbcTemplate.queryForRowSet(sql, id);
 
         if (reviewRow.next()) {
-            log.info("Отзыв : {} {}", reviewRow.getString("reviewId"), reviewRow.getString("content"));
-            Review review = new Review(reviewRow.getLong("reviewId"),
-                    reviewRow.getString("content"),
-                    reviewRow.getBoolean("isPositive"),
-                    reviewRow.getLong("user_id"),
-                    reviewRow.getLong("film_id"),
-                    reviewRow.getInt("useful")
+            Review review = new Review(reviewRow.getLong("REVIEWID"),
+                    reviewRow.getString("CONTENT"),
+                    reviewRow.getBoolean("ISPOSITIVE"),
+                    reviewRow.getLong("USER_ID"),
+                    reviewRow.getLong("FILM_ID"),
+                    reviewRow.getInt("USEFUL")
             );
             return Optional.of(review);
         } else {
-            log.info("Отзыв с идентификатором {} не найден.", id);
             return Optional.empty();
         }
     }
@@ -100,13 +96,12 @@ public class ReviewDbStorage implements ReviewStorage {
     }
 
     private Map<String, Object> toMapFilm(Review review) {
-        Map<String, Object> values = new HashMap<>();
-        values.put("CONTENT", review.getContent());
-        values.put("ISPOSITIVE", review.getIsPositive());
-        values.put("user_id", review.getUserId());
-        values.put("film_id", review.getFilmId());
-        values.put("useful", review.getUseful());
-        return values;
+        return Map.of(
+                "CONTENT", review.getContent(),
+                "ISPOSITIVE", review.getIsPositive(),
+                "user_id", review.getUserId(),
+                "film_id", review.getFilmId(),
+                "useful", review.getUseful());
     }
 
     @Override

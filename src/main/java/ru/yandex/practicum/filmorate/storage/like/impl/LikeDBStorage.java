@@ -3,13 +3,13 @@ package ru.yandex.practicum.filmorate.storage.like.impl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exceptions.FilmNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
 import ru.yandex.practicum.filmorate.storage.like.LikeStorage;
 
 @Slf4j
-@Component
+@Repository
 @Primary
 public class LikeDBStorage implements LikeStorage {
     private final JdbcTemplate jdbcTemplate;
@@ -44,21 +44,17 @@ public class LikeDBStorage implements LikeStorage {
         jdbcTemplate.update(sqlUpdateCountLike, idFilm, idFilm);
     }
 
-    private void findUser(Long idUser)
-    {
-        String sql = "select * from USERS where USER_ID = ?";
-        if(!jdbcTemplate.queryForRowSet(sql,idUser).next())
-        {
-             throw  new UserNotFoundException();
+    private void findUser(Long idUser) {
+        String sql = "select TOP(1) USER_ID from USERS where USER_ID = ?";
+        if (!jdbcTemplate.queryForRowSet(sql, idUser).next()) {
+            throw new UserNotFoundException();
         }
     }
 
-    private void findFilm(Long idFilm)
-    {
-        String sql = "select * from FILMS where FILM_ID = ?";
-        if(!jdbcTemplate.queryForRowSet(sql,idFilm).next())
-        {
-            throw  new FilmNotFoundException();
+    private void findFilm(Long idFilm) {
+        String sql = "select TOP(1) FILM_ID from FILMS where FILM_ID = ?";
+        if (!jdbcTemplate.queryForRowSet(sql, idFilm).next()) {
+            throw new FilmNotFoundException();
         }
     }
 }
