@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.model.MPA;
 import ru.yandex.practicum.filmorate.storage.mpa.MpaStorage;
 
@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Slf4j
-@Component
+@Repository
 @Primary
 public class MpaDbStorage implements MpaStorage {
 
@@ -26,7 +26,7 @@ public class MpaDbStorage implements MpaStorage {
 
     @Override
     public List<MPA> getAllMpa() {
-        String sql = "select * from rating_MPA";
+        String sql = "select mpa.RATING_MPA_ID,mpa.NAME from rating_MPA mpa";
 
         return jdbcTemplate.query(sql, (rs, rowNum) -> makeMpa(rs));
     }
@@ -38,16 +38,14 @@ public class MpaDbStorage implements MpaStorage {
 
     @Override
     public Optional<MPA> getMpa(Long id) {
-        SqlRowSet mpaRows = jdbcTemplate.queryForRowSet("select * from rating_MPA where rating_mpa_id = ?", id);
+        SqlRowSet mpaRows = jdbcTemplate.queryForRowSet("select RATING_MPA_ID,NAME from rating_MPA where rating_mpa_id = ?", id);
 
         if (mpaRows.next()) {
-            log.info("Найден Рейтинг: {} {}", mpaRows.getString("rating_mpa_id"), mpaRows.getString("name"));
             MPA mpa = new MPA(mpaRows.getLong("rating_mpa_id"),
                     mpaRows.getString("name")
             );
             return Optional.of(mpa);
         } else {
-            log.info("Рейтинг с идентификатором {} не найден.", id);
             return Optional.empty();
         }
     }

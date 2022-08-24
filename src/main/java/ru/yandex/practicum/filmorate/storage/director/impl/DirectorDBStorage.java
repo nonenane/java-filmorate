@@ -6,16 +6,18 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.storage.director.DirectorStorage;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @Slf4j
-@Component
+@Repository
 @Primary
 public class DirectorDBStorage implements DirectorStorage {
 
@@ -43,13 +45,11 @@ public class DirectorDBStorage implements DirectorStorage {
         SqlRowSet directorRows = jdbcTemplate.queryForRowSet(sql, id);
 
         if (directorRows.next()) {
-            log.info("Найден режиссер: {} {}", directorRows.getString("director_id"), directorRows.getString("name"));
             Director director = new Director(directorRows.getLong("director_id"),
                     directorRows.getString("name")
             );
             return Optional.of(director);
         } else {
-            log.info("Режиссер с идентификатором {} не найден.", id);
             return Optional.empty();
         }
     }
@@ -62,9 +62,7 @@ public class DirectorDBStorage implements DirectorStorage {
     }
 
     private Map<String, Object> toMapDirector(Director director) {
-        Map<String, Object> values = new HashMap<>();
-        values.put("name", director.getName());
-        return values;
+        return Map.of("name", director.getName());
     }
 
     private Director makeDirector(ResultSet directorRows) throws SQLException {

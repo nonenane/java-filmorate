@@ -5,20 +5,19 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.users.UserStorage;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
-@Component
+@Repository
 @Primary
 public class UserDbStorage implements UserStorage {
 
@@ -30,9 +29,9 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public List<User> getAllUsers() {
-        String sql = "select * from users";
+        String sql = "select USER_ID,EMAIL,LOGIN,NAME,BIRTHDAY from users";
 
-        return jdbcTemplate.query(sql, (rs, rowNum) -> makeUser( rs));
+        return jdbcTemplate.query(sql, (rs, rowNum) -> makeUser(rs));
     }
 
     public static User makeUser(ResultSet userRows) throws SQLException {
@@ -45,11 +44,9 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public Optional<User> getUser(Long id) {
-        //return Optional.empty();
-        SqlRowSet userRow = jdbcTemplate.queryForRowSet("select * from users where USER_ID = ?", id);
+        SqlRowSet userRow = jdbcTemplate.queryForRowSet("select USER_ID,EMAIL,LOGIN,NAME,BIRTHDAY from users where USER_ID = ?", id);
 
         if (userRow.next()) {
-            log.info("Найден фильм: {} {}", userRow.getString("USER_ID"), userRow.getString("name"));
             User user = new User(userRow.getLong("USER_ID"),
                     userRow.getString("EMAIL"),
                     userRow.getString("LOGIN"),
@@ -57,14 +54,12 @@ public class UserDbStorage implements UserStorage {
                     userRow.getDate("BIRTHDAY").toLocalDate());
             return Optional.of(user);
         } else {
-            log.info("Фильм с идентификатором {} не найден.", id);
             return Optional.empty();
         }
     }
 
     @Override
     public Optional<User> create(User user) {
-        log.info(user.toString());
         SimpleJdbcInsert simpleJdbcInsert = new SimpleJdbcInsert(jdbcTemplate)
                 .withTableName("users")
                 .usingGeneratedKeyColumns("USER_ID");
@@ -74,12 +69,7 @@ public class UserDbStorage implements UserStorage {
     }
 
     private Map<String, Object> toMapUser(User user) {
-        Map<String, Object> values = new HashMap<>();
-        values.put("email", user.getEmail());
-        values.put("login", user.getLogin());
-        values.put("name", user.getName());
-        values.put("birthday", user.getBirthday());
-        return values;
+        return Map.of("email", user.getEmail(), "login", user.getLogin(), "name", user.getName(), "birthday", user.getBirthday());
     }
 
     @Override
@@ -96,6 +86,7 @@ public class UserDbStorage implements UserStorage {
 
     /**
      * удаление пользователя
+     *
      * @param userId
      * @throws UserNotFoundException
      */

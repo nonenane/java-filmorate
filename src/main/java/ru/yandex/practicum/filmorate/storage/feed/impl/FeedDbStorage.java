@@ -4,17 +4,18 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
-import org.springframework.stereotype.Component;
-import ru.yandex.practicum.filmorate.model.*;
+import org.springframework.stereotype.Repository;
+import ru.yandex.practicum.filmorate.model.Feed;
 import ru.yandex.practicum.filmorate.storage.feed.FeedStorage;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
-@Component
+@Repository
 @Primary
 public class FeedDbStorage implements FeedStorage {
 
@@ -30,7 +31,7 @@ public class FeedDbStorage implements FeedStorage {
         String sql = "select  f.eventId, f.timeEvent, userId, entityId, eventType, operation " +
                 "from feeds as f" +
                 " where f.USERID = ?";
-        return jdbcTemplate.query(sql, (rs, rowNum) -> makeFeed(rs),userId);
+        return jdbcTemplate.query(sql, (rs, rowNum) -> makeFeed(rs), userId);
     }
 
     private Feed makeFeed(ResultSet feedRows) throws SQLException {
@@ -52,12 +53,11 @@ public class FeedDbStorage implements FeedStorage {
     }
 
     private Map<String, Object> toMapFeed(Long userId, Long eventId, String operation, String eventType) {
-        Map<String, Object> values = new HashMap<>();
-        values.put("timeEvent", Instant.now());
-        values.put("userId", userId);
-        values.put("entityId", eventId);
-        values.put("eventType", eventType);
-        values.put("operation", operation);
-        return values;
+        return Map.of("timeEvent", Instant.now(),
+                "userId", userId,
+                "entityId", eventId,
+                "eventType", eventType,
+                "operation", operation);
+
     }
 }

@@ -36,9 +36,11 @@ public class FilmService {
     public Optional<Film> update(Film film) {
         return storage.update(film);
     }
-    public void removeByFilmId (Long userId) throws ValidationException {
+
+    public void removeByFilmId(Long userId) throws ValidationException {
         storage.removeByFilmId(userId);
     }
+
     public boolean addLike(Long filmId, Long userId) {
         likeStorage.addLike(filmId, userId);
         return true;
@@ -50,22 +52,23 @@ public class FilmService {
 
     }
 
-    public List<Film> getFilmsWithMostLikes(Integer num) {
-        return storage.getPopularFilm(num);
-    }
-
     public List<Film> getDirectorFilms(Long directorId, String sortBy) {
-            return storage.getDirectorFilms(directorId, sortBy);
+        return storage.getDirectorFilms(directorId, sortBy);
     }
 
     public List<Film> getSortedByPopularityListOfFilms(Long userId, Long friendId) {
         return storage.getSortedByPopularityListOfFilms(userId, friendId);
     }
+
     public List<Film> getFilmsBySearch(String searchQuery, String searchBy) {
-        return storage.getFilmsBySearch(searchQuery,searchBy);
+        return storage.getFilmsBySearch(searchQuery, searchBy);
     }
 
     public List<Film> getPopularFilmsByGenreAndYear(Integer count, Long genreId, Integer releaseYear) {
-        return storage.getPopularFilmsByGenreAndYear(count, genreId, releaseYear);
+        if (genreId == null && releaseYear == null) {
+            return storage.getPopularFilm(count);
+        } else {
+            return storage.getPopularFilmsByGenreAndYear(count, genreId, releaseYear);
+        }
     }
 }
