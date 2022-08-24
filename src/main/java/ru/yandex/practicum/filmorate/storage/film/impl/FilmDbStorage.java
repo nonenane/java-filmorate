@@ -2,14 +2,12 @@ package ru.yandex.practicum.filmorate.storage.film.impl;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Primary;
-import org.springframework.data.relational.core.sql.In;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Component;
-import ru.yandex.practicum.filmorate.exceptions.FilmNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.DirectorNotFoundException;
+import ru.yandex.practicum.filmorate.exceptions.FilmNotFoundException;
 import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
@@ -239,6 +237,57 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     @Override
+    public List<Film> getPopularFilmsByGenreAndYear(Integer count, Long genreId, Integer releaseYear) {
+
+
+        String sql_film = "select fg.FILM_ID,g.GENRE_ID,g.NAME " +
+                "from film_genres fg join GENRES g on g.GENRE_ID = fg.GENRE_ID";
+
+        String sql_director = "select fd.FILM_ID,d. DIRECTOR_ID,d.NAME " +
+                "from film_directors fd join DIRECTORS d on d.DIRECTOR_ID = fd.DIRECTOR_ID";
+
+        SqlRowSet genreRows = jdbcTemplate.queryForRowSet(sql_film);
+        Map<Long, Set<Genre>> setMap = makeGenreMap(genreRows);
+
+        SqlRowSet directorRows = jdbcTemplate.queryForRowSet(sql_director);
+        Map<Long, Set<Director>> setMapDirector = makeDirectorMap(directorRows);
+
+        if (releaseYear != null && genreId != null) {
+            String sql = "select  f.film_id, f.name as fname, description, releaseDate, duration, " +
+                    "f.RATING_MPA_ID, rm.name as mpa_name " +
+                    "from films as f join rating_mpa as rm on f.RATING_MPA_ID = rm.RATING_MPA_ID " +
+                    "INNER JOIN FILM_GENRES FG on f.FILM_ID = FG.FILM_ID " +
+                    "WHERE YEAR(RELEASEDATE) = ? and fg.GENRE_ID = ? " +
+                    "ORDER BY f.LIKES_COUNTER DESC " +
+                    "LIMIT ?";
+
+            return jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs, setMap, setMapDirector), releaseYear, genreId, count);
+        } else if (releaseYear != null) {
+            String sql = "select  film_id, f.name as fname, description, releaseDate, duration, " +
+                    "f.RATING_MPA_ID, rm.name as mpa_name " +
+                    "from films as f join rating_mpa as rm on f.RATING_MPA_ID = rm.RATING_MPA_ID " +
+                    "WHERE YEAR(RELEASEDATE) = ? " +
+                    "ORDER BY f.LIKES_COUNTER DESC " +
+                    "LIMIT ?";
+
+            return jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs, setMap, setMapDirector),releaseYear,  count);
+        } else {
+            String sql = "select  f.film_id, f.name as fname, description, releaseDate, duration, " +
+                    "f.RATING_MPA_ID, rm.name as mpa_name " +
+                    "from films as f join rating_mpa as rm on f.RATING_MPA_ID = rm.RATING_MPA_ID " +
+                    "INNER JOIN FILM_GENRES FG on f.FILM_ID = FG.FILM_ID " +
+                    "WHERE fg.GENRE_ID = ? " +
+                    "ORDER BY f.LIKES_COUNTER DESC " +
+                    "LIMIT ?";
+
+            return jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs, setMap, setMapDirector), genreId, count);
+        }
+        //List<Film> films = jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs, setMap, setMapDirector), count);
+        //return films;
+    }
+
+
+    @Override
     public void removeByFilmId(Long filmId) {
         String sqlString = "delete from FILMS where FILM_ID=?";
         if (jdbcTemplate.update(sqlString, filmId) == 0) {
@@ -325,7 +374,6 @@ public class FilmDbStorage implements FilmStorage {
     }
 
 
-
     @Override
     public Set<Film> getRecommendation(Long userId) {
         Map<Long, Map<Long, Integer>> data = new HashMap<>(); //userId, filmId, Integer -- пока 0 и 1, потом будут лайки от 0 до 10
@@ -345,7 +393,7 @@ public class FilmDbStorage implements FilmStorage {
             );
             Map<Long, Integer> filmMap = new HashMap<>();
             for (Long filmId : likedFilmsId) {
-                filmMap.put(filmId,  1);
+                filmMap.put(filmId, 1);
             }
             data.put(id, filmMap);
         }
@@ -417,6 +465,7 @@ public class FilmDbStorage implements FilmStorage {
         output.addAll(getFilmsWithoutLiked(userId, clean));
         return output;
     }
+
     private List<Film> getFilmsWithoutLiked(long userId, Map<Long, Double> recommendationPriority) {
         String sql = "select  film_id, f.name as fname, description, releaseDate, duration, " +
                 "f.RATING_MPA_ID, rm.name as mpa_name " +
@@ -444,12 +493,10 @@ public class FilmDbStorage implements FilmStorage {
                     if (recommendationPriority.get(a.getId()) == null) {
                         return false;
                     }
-                    return recommendationPriority.get(a.getId()) > 0.0;})
+                    return recommendationPriority.get(a.getId()) > 0.0;
+                })
                 .collect(Collectors.toList());
     }
-
-
-
 
 
     @Override
@@ -475,6 +522,7 @@ public class FilmDbStorage implements FilmStorage {
         List<Film> films = jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs, setMap, setMapDirector), userId, friendId);
         return films;
     }
+
     @Override
     public List<Film> getFilmsBySearch(String searchQuery, String searchBy) {
         searchQuery = searchQuery.toLowerCase();
@@ -570,6 +618,6 @@ public class FilmDbStorage implements FilmStorage {
             films.add(film);
         }
 
-       return films;
+        return films;
     }
 }
