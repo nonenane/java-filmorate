@@ -3,7 +3,7 @@ package ru.yandex.practicum.filmorate.storage.friends.impl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exceptions.AlreadyFriendsException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.friends.FriendsStorage;
@@ -12,7 +12,7 @@ import ru.yandex.practicum.filmorate.storage.users.impl.UserDbStorage;
 import java.util.List;
 
 @Slf4j
-@Component
+@Repository
 @Primary
 public class FriendsDbStorage implements FriendsStorage {
 
